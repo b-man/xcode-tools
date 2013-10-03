@@ -48,9 +48,11 @@ char *get_sdk_path(void)
 		value = devpath;
 		fclose(fp);
 	} else {
-		fprintf(stderr, "xcode-select: error: unable to read configuration file. (error=%s)\n", strerror(errno));
+		fprintf(stderr, "xcode-select: error: unable to read configuration file. (errno=%s)\n", strerror(errno));
 		return NULL;
 	}
+
+	free(darwincfg_path);
 
 	return value;
 }
@@ -70,13 +72,16 @@ int set_sdk_path(const char *path)
 
         strcat(pathtocfg, "/");
 	strcat(darwincfg_path, strcat(pathtocfg, DARWINSDK_CFG));
+
 	if ((fp = fopen(darwincfg_path, "w+")) != NULL) {
 		fwrite(path, 1, strlen(path), fp);
 		fclose(fp);
 	} else {
-		fprintf(stderr, "xcode-select: error: unable to open configuration file. (error=%s)\n", strerror(errno));
+		fprintf(stderr, "xcode-select: error: unable to open configuration file. (errno=%s)\n", strerror(errno));
 		return 1;
 	}
+
+	free(darwincfg_path);
 
 	return 0;
 }
