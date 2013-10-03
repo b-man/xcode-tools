@@ -1,23 +1,12 @@
-PREFIX = /usr
+all:
+	make -C xcrun/
+	make -C xcode-select/
 
-CC = clang
-CFLAGS = -Wall -Werror -O2
-
-OBJS := \
-	xcrun.o
-
-PROG := xcrun
-
-%c.o:
-	$(CC) $(CFLAGS) -c $< -o @@
-
-all: $(OBJS)
-	$(CC) $(OBJS) -o $(PROG)
-
-install: $(PROG)
-	install -d $(PREFIX)/bin
-	install -s -m 755 $(PROG) $(PREFIX)/bin/$(PROG)
+install:
+	make -C xcrun/ PREFIX=$(PREFIX) install
+	make -C xcode-select/ PREFIX=$(PREFIX) install
 
 .PHONY: clean
 clean:
-	rm -rf $(OBJS) $(PROG)
+	make -C xcrun/ clean
+	make -C xcode-select/ clean
