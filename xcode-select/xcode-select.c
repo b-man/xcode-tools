@@ -5,7 +5,7 @@
 #include <errno.h>
 
 #define TOOL_VERSION "0.0.1"
-#define DARWINSDK_CFG ".darwin.cfg"
+#define DARWINSDK_CFG ".darwinsdk.dat"
 
 void usage(char *prog)
 {
