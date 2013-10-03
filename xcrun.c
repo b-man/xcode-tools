@@ -73,7 +73,7 @@ static char *find_command(const char *name, char *argv[])
 	int has_searched = 0;		/* flag set to 1 if search is performed */
 
 	/* Read our PATH environment variable. */
-	if ((env_path = getenv(PATH)) != NULL)
+	if ((env_path = getenv("PATH")) != NULL)
 		absl_path = strtok(env_path, delimiter);
 	else {
 		fprintf(stderr, "xcrun: error: failed to read PATH variable.\n");
