@@ -78,7 +78,7 @@ int set_sdk_path(const char *path)
 		fclose(fp);
 	} else {
 		fprintf(stderr, "xcode-select: error: unable to open configuration file. (errno=%s)\n", strerror(errno));
-		return 1;
+		return -1;
 	}
 
 	free(darwincfg_path);
@@ -100,6 +100,8 @@ int main(int argc, char *argv[])
 	else if (strcmp(argv[1], "-print-path") == 0) {
 		if ((path = get_sdk_path()) != NULL)
 			printf("%s\n", path);
+		else
+			return -1;
 	} else if (strcmp(argv[1], "-version") == 0) {
 		printf("xcode-select version %s\n", TOOL_VERSION);
 	} else
