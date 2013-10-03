@@ -16,7 +16,7 @@ all: $(OBJS)
 
 install: $(PROG)
 	install -d $(PREFIX)/bin
-	install -m 755 $(PROG) $(PREFIX)/bin/$(PROG)
+	install -s -m 755 $(PROG) $(PREFIX)/bin/$(PROG)
 
 .PHONY: clean
 clean:
