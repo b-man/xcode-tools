@@ -36,6 +36,9 @@
 #include <limits.h>
 #include <errno.h>
 
+#define TOOL_VERSION "0.0.1"
+#define DARWINSDK_CFG ".darwinsdk.dat"
+
 /**
  * @func usage -- Print helpful information about this program.
  * @prog -- name of this program
@@ -44,6 +47,48 @@ static void usage(char *prog)
 {
 	fprintf(stderr, "Usage: %s <program>\n", prog);
 	exit(1);
+}
+
+/**
+ * @func get_sdk_path -- retrieve current sdk path
+ * @return: string of current path on success, NULL string on failure
+ */
+static char *get_sdk_path(void)
+{
+	FILE *fp = NULL;
+	char devpath[PATH_MAX - 1];
+	char *pathtocfg = NULL;
+	char *darwincfg_path = NULL;
+	char *value = NULL;
+
+	if ((value = getenv("DEVELOPER_DIR")) != NULL)
+		return value;
+
+	memset(devpath, 0, sizeof(devpath));
+
+	if ((pathtocfg = getenv("HOME")) == NULL) {
+		fprintf(stderr, "xcode-select: error: failed to read HOME variable.\n");
+		return NULL;
+	}
+
+	darwincfg_path = (char *)malloc((strlen(pathtocfg) + sizeof(DARWINSDK_CFG)));
+
+	strcat(pathtocfg, "/");
+	strcat(darwincfg_path, strcat(pathtocfg, DARWINSDK_CFG));
+
+	if ((fp = fopen(darwincfg_path, "r")) != NULL) {
+		fseek(fp, SEEK_SET, 0);
+		fread(devpath, (PATH_MAX), 1, fp);
+		value = devpath;
+		fclose(fp);
+	} else {
+		fprintf(stderr, "xcode-select: error: unable to read configuration file. (errno=%s)\n", strerror(errno));
+		return NULL;
+	}
+
+	free(darwincfg_path);
+
+	return value;
 }
 
 /**
@@ -70,7 +115,6 @@ static char *find_command(const char *name, char *argv[])
 	char *absl_path = NULL;		/* path entry in PATH env variable */
 	char *this_path = NULL;		/* the path that might point to the program */
 	char delimiter[2] = ":";	/* delimiter for path enteries in PATH env variable */
-	int has_searched = 0;		/* flag set to 1 if search is performed */
 
 	/* Read our PATH environment variable. */
 	if ((env_path = getenv("PATH")) != NULL)
@@ -82,7 +126,6 @@ static char *find_command(const char *name, char *argv[])
 
 	/* Search each path entry in PATH until we find our program. */
 	while (absl_path != NULL) {
-		has_searched = 1;
 		this_path = (char *)malloc((PATH_MAX - 1));
 
 		/* Construct our program's absolute path. */
@@ -91,7 +134,6 @@ static char *find_command(const char *name, char *argv[])
 
 		/* Does it exist? Is it an executable? */
 		if (access(cmd, X_OK) == 0) {
-			free(this_path);
 			call_command(cmd, argv);
 			/* NOREACH */
 			fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
@@ -102,9 +144,21 @@ static char *find_command(const char *name, char *argv[])
 		absl_path = strtok(NULL, delimiter);
 	}
 
-	/* We have searched PATH, but we haven't found our program. State why. */
-	if (has_searched == 1)
-		fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", name, strerror(errno));
+	/* We have searched PATH, but we haven't found our program yet. Try looking at the SDK folder */
+	this_path = (char *)malloc((PATH_MAX - 1));
+	if ((this_path = get_sdk_path()) != NULL) {
+		cmd = strncat(strcat(this_path, "/bin/"), name, strlen(name));
+		/* Does it exist? Is it an executable? */
+		if (access(cmd, X_OK) == 0) {
+			call_command(cmd, argv);
+			/* NOREACH */
+			fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
+			return NULL;
+		}
+	}
+
+	/* We have searched everywhere, but we haven't found our program. State why. */
+	fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", name, strerror(errno));
 
 	/* Search has failed, return NULL. */
 	return NULL;
