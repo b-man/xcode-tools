@@ -33,11 +33,20 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <libgen.h>
 #include <limits.h>
 #include <errno.h>
 
 #define TOOL_VERSION "0.0.1"
 #define DARWINSDK_CFG ".darwinsdk.dat"
+
+/* Ways that this tool may be called */
+static const char *multicall_tool_names[4] = {
+	"xcrun",
+	"xcrun_log",
+	"xcrun_verbose",
+	"xcrun_nocache"
+};
 
 /**
  * @func usage -- Print helpful information about this program.
@@ -147,7 +156,7 @@ static char *find_command(const char *name, char *argv[])
 	/* We have searched PATH, but we haven't found our program yet. Try looking at the SDK folder */
 	this_path = (char *)malloc((PATH_MAX - 1));
 	if ((this_path = get_sdk_path()) != NULL) {
-		cmd = strncat(strcat(this_path, "/bin/"), name, strlen(name));
+		cmd = strncat(strcat(this_path, "/usr/bin/"), name, strlen(name));
 		/* Does it exist? Is it an executable? */
 		if (access(cmd, X_OK) == 0) {
 			call_command(cmd, argv);
@@ -164,19 +173,81 @@ static char *find_command(const char *name, char *argv[])
 	return NULL;
 }
 
-int main(int argc, char *argv[])
+static int xcrun_main(int argc, char *argv[])
 {
 	int retval = 1;
+	char *tool_called = NULL;
 
 	/* Print usage if no argument is supplied. */
 	if (argc < 2)
 		usage(argv[0]);
 
+	/* Strip out any path name that may have been passed into argv[1]. */
+	tool_called = basename(argv[1]);
+
 	/* Search for program. */
-	if (find_command(argv[1], ++argv) != NULL)
+	if (find_command(tool_called, ++argv) != NULL)
 		retval = 0;
 	else {
-		fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", argv[0]);
+		fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", tool_called);
+	}
+
+	return retval;
+}
+
+/**
+ * @func get_multicall_state -- Return a number that is associated to a given multicall state.
+ * @arg cmd - command that binary is being called
+ * @arg state - char array containing a set of possible "multicall states"
+ * @arg state_size - number of elements in state array
+ * @return: a number from 1 to state_size (first enrty to last entry found in state array), or -1 if one isn't found
+ */
+static int get_multicall_state(const char *cmd, const char *state[], int state_size)
+{
+	int i;
+
+	for (i = 0; i < (state_size - 1); i++) {
+		if (strcmp(cmd, state[i]) == 0)
+			return (i + 1);
+	}
+
+	return -1;
+}
+
+int main(int argc, char *argv[])
+{
+	int retval = 1;
+	int call_state;
+	char *this_tool = NULL;
+
+	/* Strip out any path name that may have been passed into argv[0]. */
+	this_tool = basename(argv[0]);
+
+	/* Check if we are being treated as a multi-call binary. */
+	call_state = get_multicall_state(this_tool, multicall_tool_names, 4);
+
+	/* Execute based on the state that we were callen in. */
+	switch (call_state) {
+		case 1: /* xcrun */
+			retval = xcrun_main(argc, argv);
+			break;
+		case 2: /* xcrun_log */
+			retval = xcrun_main(argc, argv);
+			break;
+		case 3: /* xcrun_nocache */
+			retval = xcrun_main(argc, argv);
+			break;
+		case 4: /* xcrun_verbose */
+			retval = xcrun_main(argc, argv);
+			break;
+		case -1:
+		default: /* called as tool name */
+			if (find_command(this_tool, argv) != NULL)
+				retval = 0;
+			else {
+				fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", this_tool);
+			}
+			break;
 	}
 
 	return retval;

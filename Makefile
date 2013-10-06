@@ -1,3 +1,5 @@
+PREFIX = /usr
+
 all:
 	make -C xcrun/
 	make -C xcode-select/
