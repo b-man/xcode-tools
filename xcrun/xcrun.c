@@ -234,10 +234,10 @@ int main(int argc, char *argv[])
 		case 2: /* xcrun_log */
 			retval = xcrun_main(argc, argv);
 			break;
-		case 3: /* xcrun_nocache */
+		case 3: /* xcrun_verbose */
 			retval = xcrun_main(argc, argv);
 			break;
-		case 4: /* xcrun_verbose */
+		case 4: /* xcrun_nocache */
 			retval = xcrun_main(argc, argv);
 			break;
 		case -1:
