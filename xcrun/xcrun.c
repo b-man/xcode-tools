@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
 #include <libgen.h>
@@ -40,6 +41,10 @@
 #define TOOL_VERSION "0.0.1"
 #define DARWINSDK_CFG ".darwinsdk.dat"
 
+/* Output mode flags */
+static int logging_mode = 0;
+static int verbose_mode = 0;
+
 /* Ways that this tool may be called */
 static const char *multicall_tool_names[4] = {
 	"xcrun",
@@ -47,6 +52,41 @@ static const char *multicall_tool_names[4] = {
 	"xcrun_verbose",
 	"xcrun_nocache"
 };
+
+
+/**
+ * @func verbose_printf -- Print output to fp in verbose mode.
+ * @arg fp - pointer to file (file, stderr, or stdio)
+ * @arg str - string to print
+ * @arg ... - additional arguments used
+ */
+static void verbose_printf(FILE *fp, const char *str, ...)
+{
+	va_list args;
+
+	if (verbose_mode == 1) {
+		va_start(args, str);
+		vfprintf(fp, str, args);
+		va_end(args);
+	}
+}
+
+/**
+ * @func logging_printf -- Print output to fp in logging mode.
+ * @arg fp - pointer to file (file, stderr, or stdio)
+ * @arg str - string to print
+ * @arg ... - additional arguments used
+ */
+static void logging_printf(FILE *fp, const char *str, ...)
+{
+	va_list args;
+
+	if (logging_mode == 1) {
+		va_start(args, str);
+		vfprintf(fp, str, args);
+		va_end(args);
+	}
+}
 
 /**
  * @func usage -- Print helpful information about this program.
@@ -59,7 +99,7 @@ static void usage(char *prog)
 }
 
 /**
- * @func get_sdk_path -- retrieve current sdk path
+ * @func get_sdk_path -- retrieve current developer path
  * @return: string of current path on success, NULL string on failure
  */
 static char *get_sdk_path(void)
@@ -70,11 +110,16 @@ static char *get_sdk_path(void)
 	char *darwincfg_path = NULL;
 	char *value = NULL;
 
-	if ((value = getenv("DEVELOPER_DIR")) != NULL)
+	verbose_printf(stdout, "xcrun: info: attempting to retrieve developer path from DEVELOPER_DIR...\n");
+
+	if ((value = getenv("DEVELOPER_DIR")) != NULL) {
+		verbose_printf(stdout, "xcrun: info: using developer path \'%s\' from DEVELOPER_DIR.\n", value);
 		return value;
+	}
 
 	memset(devpath, 0, sizeof(devpath));
 
+	verbose_printf(stdout, "xcrun: info: attempting to retrieve developer path from configuration file...\n");
 	if ((pathtocfg = getenv("HOME")) == NULL) {
 		fprintf(stderr, "xcode-select: error: failed to read HOME variable.\n");
 		return NULL;
@@ -86,7 +131,7 @@ static char *get_sdk_path(void)
 	strcat(darwincfg_path, strcat(pathtocfg, DARWINSDK_CFG));
 
 	if ((fp = fopen(darwincfg_path, "r")) != NULL) {
-		fseek(fp, SEEK_SET, 0);
+		fseek(fp, 0, SEEK_SET);
 		fread(devpath, (PATH_MAX), 1, fp);
 		value = devpath;
 		fclose(fp);
@@ -95,19 +140,31 @@ static char *get_sdk_path(void)
 		return NULL;
 	}
 
+	verbose_printf(stdout, "xcrun: info: using developer path \'%s\' from configuration file.\n", value);
+
 	free(darwincfg_path);
 
 	return value;
 }
 
 /**
- * @func call_command - Execute new process to replace this one.
- * @arg cmd -- program's absolute path
- * @arg argv -- arguments to be passed to new process
+ * @func call_command -- Execute new process to replace this one.
+ * @arg cmd - program's absolute path
+ * @arg argc - number of arguments to be passed to new process
+ * @arg argv - arguments to be passed to new process
  * @return: -1 on error, otherwise no return
  */
-static int call_command(const char *cmd, char *argv[])
+static int call_command(const char *cmd, int argc, char *argv[])
 {
+	int i;
+
+	if (logging_mode == 1) {
+		logging_printf(stdout, "xcrun: info: invoking command:\n\t\"%s", cmd);
+		for (i = 1; i < argc; i++)
+			logging_printf(stdout, " %s", argv[i]);
+		logging_printf(stdout, "\"\n");
+	}
+
 	return execv(cmd, argv);
 }
 
@@ -117,7 +174,7 @@ static int call_command(const char *cmd, char *argv[])
  * @arg argv -- arguments to be passed if program found
  * @return: NULL on failed search or execution
  */
-static char *find_command(const char *name, char *argv[])
+static char *find_command(const char *name, int argc, char *argv[])
 {
 	char *cmd = NULL;		/* command's absolute path */
 	char *env_path = NULL;		/* contents of PATH env variable */
@@ -137,13 +194,16 @@ static char *find_command(const char *name, char *argv[])
 	while (absl_path != NULL) {
 		this_path = (char *)malloc((PATH_MAX - 1));
 
+		verbose_printf(stdout, "xcrun: info: checking directory \'%s\' for command \'%s\'...\n", absl_path, name);
+
 		/* Construct our program's absolute path. */
 		strncpy(this_path, absl_path, strlen(absl_path));
 		cmd = strncat(strcat(this_path, "/"), name, strlen(name));
 
 		/* Does it exist? Is it an executable? */
 		if (access(cmd, X_OK) == 0) {
-			call_command(cmd, argv);
+			verbose_printf(stdout, "xcrun: info: found command's absolute path: \'%s\'\n", cmd);
+			call_command(cmd, argc, argv);
 			/* NOREACH */
 			fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
 			return NULL;
@@ -156,10 +216,12 @@ static char *find_command(const char *name, char *argv[])
 	/* We have searched PATH, but we haven't found our program yet. Try looking at the SDK folder */
 	this_path = (char *)malloc((PATH_MAX - 1));
 	if ((this_path = get_sdk_path()) != NULL) {
+		verbose_printf(stdout, "xcrun: info: checking directory \'%s/usr/bin\' for command \'%s\'...\n", this_path, name);
 		cmd = strncat(strcat(this_path, "/usr/bin/"), name, strlen(name));
 		/* Does it exist? Is it an executable? */
 		if (access(cmd, X_OK) == 0) {
-			call_command(cmd, argv);
+			verbose_printf(stdout, "xcrun: info: found command's absolute path: \'%s\'\n", cmd);
+			call_command(cmd, argc, argv);
 			/* NOREACH */
 			fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
 			return NULL;
@@ -186,7 +248,7 @@ static int xcrun_main(int argc, char *argv[])
 	tool_called = basename(argv[1]);
 
 	/* Search for program. */
-	if (find_command(tool_called, ++argv) != NULL)
+	if (find_command(tool_called, --argc,  ++argv) != NULL)
 		retval = 0;
 	else {
 		fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", tool_called);
@@ -232,9 +294,11 @@ int main(int argc, char *argv[])
 			retval = xcrun_main(argc, argv);
 			break;
 		case 2: /* xcrun_log */
+			logging_mode = 1;
 			retval = xcrun_main(argc, argv);
 			break;
 		case 3: /* xcrun_verbose */
+			verbose_mode = 1;
 			retval = xcrun_main(argc, argv);
 			break;
 		case 4: /* xcrun_nocache */
@@ -242,7 +306,7 @@ int main(int argc, char *argv[])
 			break;
 		case -1:
 		default: /* called as tool name */
-			if (find_command(this_tool, argv) != NULL)
+			if (find_command(this_tool, argc, argv) != NULL)
 				retval = 0;
 			else {
 				fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", this_tool);
