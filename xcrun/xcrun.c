@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <string.h>
 #include <libgen.h>
 #include <limits.h>
@@ -44,6 +45,7 @@
 /* Output mode flags */
 static int logging_mode = 0;
 static int verbose_mode = 0;
+static int finding_mode = 0;
 
 /* Ways that this tool may be called */
 static const char *multicall_tool_names[4] = {
@@ -52,7 +54,6 @@ static const char *multicall_tool_names[4] = {
 	"xcrun_verbose",
 	"xcrun_nocache"
 };
-
 
 /**
  * @func verbose_printf -- Print output to fp in verbose mode.
@@ -92,10 +93,41 @@ static void logging_printf(FILE *fp, const char *str, ...)
  * @func usage -- Print helpful information about this program.
  * @prog -- name of this program
  */
-static void usage(char *prog)
+static void usage(void)
 {
-	fprintf(stderr, "Usage: %s <program>\n", prog);
-	exit(1);
+	fprintf(stderr, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+		"Usage: xcrun [options] [-r|-f] <tool name> ... arguments ...\n",
+		"\n",
+		"Find and execute the named command line tool from the active developer directory.\n",
+		"\n",
+		"The active developer directory can be set using `xcode-select`, or via the\n",
+		"DEVELOPER_DIR environment variable. See the xcrun and xcode-select manual\n",
+		"pages for more information.\n",
+		"\n",
+		"Options:\n",
+		"  -h, --help                  show this help message and exit\n",
+		"  --version                   show the xcrun version\n",
+		"  -v, --verbose               show verbose logging output\n",
+		"  --sdk <sdk name>            find the tool for the given SDK name	(!!!NOT SUPPORTED YET!!!)\n",
+		"  --toolchain <name>          find the tool for the given toolchain	(!!!NOT SUPPORTED YET!!!)\n",
+		"  -l, --log                   show commands to be executed (with --run)\n",
+		"  -f, --find                  only find and print the tool path\n",
+		"  -r, --run                   find and execute the tool (the default behavior)\n",
+		"  -n, --no-cache              do not use the lookup cache		(!!!NOT SUPPORTED YET!!!)\n",
+		"  -k, --kill-cache            invalidate all existing cache entries	(!!!NOT SUPPORTED YET!!!)\n",
+		"  --show-sdk-path             show selected SDK install path		(!!!NOT SUPPORTED YET!!!)\n",
+		"  --show-sdk-version          show selected SDK version			(!!!NOT SUPPORTED YET!!!)\n",
+		"  --show-sdk-platform-path    show selected SDK platform path		(!!!NOT SUPPORTED YET!!!)\n",
+		"  --show-sdk-platform-version show selected SDK platform version	(!!!NOT SUPPORTED YET!!!)\n"
+		);
+
+	exit(0);
+}
+
+static void version(void)
+{
+	fprintf(stdout, "xcrun version %s\n", TOOL_VERSION);
+	exit(0);
 }
 
 /**
@@ -237,18 +269,111 @@ static char *find_command(const char *name, int argc, char *argv[])
 
 static int xcrun_main(int argc, char *argv[])
 {
+	int ch;
 	int retval = 1;
+	int argc_offset = 0;
 	char *tool_called = NULL;
 
-	/* Print usage if no argument is supplied. */
-	if (argc < 2)
-		usage(argv[0]);
+	char *sdkpath = NULL;
+	char *toolchpath = NULL;
 
-	/* Strip out any path name that may have been passed into argv[1]. */
-	tool_called = basename(argv[1]);
+	int help_f, version_f, verbose_f, sdk_f, toolchain_f, log_f, find_f, run_f, nocache_f, killcache_f, ssdkp_f, ssdkv_f, ssdkpp_f, ssdkpv_f;
+	help_f = version_f = verbose_f = sdk_f = toolchain_f = log_f = find_f = run_f = nocache_f = killcache_f = ssdkp_f = ssdkv_f = ssdkpp_f = ssdkpv_f = 0;
+
+	static struct option options[] = {
+		{ "help", no_argument, 0, 'h' },
+		{ "version", no_argument, 0, 'V' },
+		{ "verbose", no_argument, 0, 'v' },
+		{ "sdk", required_argument, 0, 'S' },
+		{ "toolchain", required_argument, 0, 'T' },
+		{ "log", no_argument, 0, 'l' },
+		{ "find", required_argument, 0, 'f' },
+		{ "run", required_argument, 0, 'r' },
+		{ "no-cache", no_argument, 0, 'n' },
+		{ "kill-cache", no_argument, 0, 'k' },
+		{ "show-sdk-path", no_argument, 0, 'W' },
+		{ "show-sdk-version", no_argument, 0, 'X' },
+		{ "show-sdk-platform-path", no_argument, 0, 'Y' },
+		{ "show-sdk-platform-version", no_argument, 0, 'Z' }
+	};
+
+	/* Only parse arguments if they are given */
+	if (*(*(argv + 1)) == '-') {
+		while ((ch = getopt_long_only(argc, argv, "hvlf:r:nk", options, NULL)) != (-1)) {
+			switch (ch) {
+				case 'h':
+					help_f = 1;
+					usage();
+					break;
+				case 'V':
+					version_f = 1;
+					version();
+					break;
+				case 'v':
+					verbose_f = 1;
+					verbose_mode = 1;
+					break;
+				case 'S':
+					sdk_f = 1;
+					sdkpath = optarg;
+					break;
+				case 'T':
+					toolchain_f = 1;
+					toolchpath = optarg;
+					break;
+				case 'l':
+					log_f = 1;
+					logging_mode = 1;
+					break;
+				case 'r':
+					run_f = 1;
+					tool_called = basename(optarg);
+					break;
+				case 'f':
+					find_f = 1;
+					tool_called = basename(optarg);
+					finding_mode = 1;
+					break;
+				case 'n':
+					nocache_f = 1;
+					break;
+				case 'k':
+					killcache_f = 1;
+					break;
+				case 'W':
+					ssdkp_f = 1;
+					break;
+				case 'X':
+					ssdkv_f = 1;
+					break;
+				case 'Y':
+					ssdkpp_f = 1;
+					break;
+				case 'Z':
+					ssdkpv_f = 1;
+					break;
+				case '?':
+				default:
+					usage();
+					break;
+			}
+
+			++argc_offset;
+
+			/* We don't want to parse any more arguments after these are set. */
+			if (ch == 'f' || ch == 'r')
+				break;
+		}
+	} else
+		tool_called = basename(argv[1]);
+
+	if ((verbose_f == 1 || log_f == 1) && tool_called == NULL) {
+		fprintf(stderr, "xcrun: error: no command specified.\n");
+		exit(1);
+	}
 
 	/* Search for program. */
-	if (find_command(tool_called, --argc,  ++argv) != NULL)
+	if (find_command(tool_called, ((argc - argc_offset) - (argc - argc_offset)),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset + 1)))) != NULL)
 		retval = 0;
 	else {
 		fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", tool_called);
