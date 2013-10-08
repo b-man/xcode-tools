@@ -39,6 +39,7 @@
 #include <limits.h>
 #include <errno.h>
 
+/* General stuff */
 #define TOOL_VERSION "0.0.1"
 #define DARWINSDK_CFG ".darwinsdk.dat"
 
@@ -91,7 +92,6 @@ static void logging_printf(FILE *fp, const char *str, ...)
 
 /**
  * @func usage -- Print helpful information about this program.
- * @prog -- name of this program
  */
 static void usage(void)
 {
@@ -124,6 +124,9 @@ static void usage(void)
 	exit(0);
 }
 
+/**
+ * @func version -- print out version info for this tool
+ */
 static void version(void)
 {
 	fprintf(stdout, "xcrun version %s\n", TOOL_VERSION);
@@ -277,19 +280,25 @@ static char *find_command(const char *name, int argc, char *argv[])
 	return NULL;
 }
 
+/**
+ * @func xcrun_main -- xcrun's main routine
+ * @arg argc - number of arguments passed by user
+ * @arg argv - array of arguments passed by user
+ * @return: 0 (or none) on success, 1 on failure
+ */
 static int xcrun_main(int argc, char *argv[])
 {
 	int ch;
 	int retval = 1;
 	int argc_offset = 0;
 	char *tool_called = NULL;
-
 	char *sdkpath = NULL;
 	char *toolchpath = NULL;
 
 	int help_f, version_f, verbose_f, sdk_f, toolchain_f, log_f, find_f, run_f, nocache_f, killcache_f, ssdkp_f, ssdkv_f, ssdkpp_f, ssdkpv_f;
 	help_f = version_f = verbose_f = sdk_f = toolchain_f = log_f = find_f = run_f = nocache_f = killcache_f = ssdkp_f = ssdkv_f = ssdkpp_f = ssdkpv_f = 0;
 
+	/* Supported options */
 	static struct option options[] = {
 		{ "help", no_argument, 0, 'h' },
 		{ "version", no_argument, 0, 'V' },
@@ -376,6 +385,7 @@ static int xcrun_main(int argc, char *argv[])
 	} else  /* We are just executing a program. */
 		tool_called = basename(argv[1]);
 
+	/* Don't continue if we are missing arguments. */
 	if ((verbose_f == 1 || log_f == 1) && tool_called == NULL) {
 		fprintf(stderr, "xcrun: error: specified arguments require -r or -f arguments.\n");
 		exit(1);
