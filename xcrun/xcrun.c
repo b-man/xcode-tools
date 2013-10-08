@@ -235,10 +235,15 @@ static char *find_command(const char *name, int argc, char *argv[])
 		/* Does it exist? Is it an executable? */
 		if (access(cmd, X_OK) == 0) {
 			verbose_printf(stdout, "xcrun: info: found command's absolute path: \'%s\'\n", cmd);
-			call_command(cmd, argc, argv);
-			/* NOREACH */
-			fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
-			return NULL;
+			if (finding_mode != 1) {
+				call_command(cmd, argc, argv);
+				/* NOREACH */
+				fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
+				return NULL;
+			} else {
+				fprintf(stdout, "%s\n", cmd);
+				exit(0);
+			}
 		}
 
 		/* If not, move onto the next entry.. */
@@ -253,15 +258,20 @@ static char *find_command(const char *name, int argc, char *argv[])
 		/* Does it exist? Is it an executable? */
 		if (access(cmd, X_OK) == 0) {
 			verbose_printf(stdout, "xcrun: info: found command's absolute path: \'%s\'\n", cmd);
-			call_command(cmd, argc, argv);
-			/* NOREACH */
-			fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
-			return NULL;
+			if (finding_mode != 1) {
+				call_command(cmd, argc, argv);
+				/* NOREACH */
+				fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
+				return NULL;
+			} else {
+				fprintf(stdout, "%s\n", cmd);
+				exit(0);
+			}
 		}
 	}
 
 	/* We have searched everywhere, but we haven't found our program. State why. */
-	fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", name, strerror(errno));
+	fprintf(stderr, "xcrun: error: can't stat \'%s\' (errno=%s)\n", name, strerror(errno));
 
 	/* Search has failed, return NULL. */
 	return NULL;
@@ -297,21 +307,22 @@ static int xcrun_main(int argc, char *argv[])
 		{ "show-sdk-platform-version", no_argument, 0, 'Z' }
 	};
 
+	/* Print help if nothing is specified */
+	if (argc < 2)
+		usage();
+
 	/* Only parse arguments if they are given */
 	if (*(*(argv + 1)) == '-') {
 		while ((ch = getopt_long_only(argc, argv, "hvlf:r:nk", options, NULL)) != (-1)) {
 			switch (ch) {
 				case 'h':
 					help_f = 1;
-					usage();
 					break;
 				case 'V':
 					version_f = 1;
-					version();
 					break;
 				case 'v':
 					verbose_f = 1;
-					verbose_mode = 1;
 					break;
 				case 'S':
 					sdk_f = 1;
@@ -323,7 +334,6 @@ static int xcrun_main(int argc, char *argv[])
 					break;
 				case 'l':
 					log_f = 1;
-					logging_mode = 1;
 					break;
 				case 'r':
 					run_f = 1;
@@ -332,7 +342,6 @@ static int xcrun_main(int argc, char *argv[])
 				case 'f':
 					find_f = 1;
 					tool_called = basename(optarg);
-					finding_mode = 1;
 					break;
 				case 'n':
 					nocache_f = 1;
@@ -354,7 +363,7 @@ static int xcrun_main(int argc, char *argv[])
 					break;
 				case '?':
 				default:
-					usage();
+					help_f = 1;
 					break;
 			}
 
@@ -364,16 +373,42 @@ static int xcrun_main(int argc, char *argv[])
 			if (ch == 'f' || ch == 'r')
 				break;
 		}
-	} else
+	} else  /* We are just executing a program. */
 		tool_called = basename(argv[1]);
 
 	if ((verbose_f == 1 || log_f == 1) && tool_called == NULL) {
-		fprintf(stderr, "xcrun: error: no command specified.\n");
+		fprintf(stderr, "xcrun: error: specified arguments require -r or -f arguments.\n");
 		exit(1);
 	}
 
-	/* Search for program. */
+	/* Print help? */
+	if (help_f == 1 || argc < 2)
+		usage();
+
+	/* Print version? */
+	if (version_f == 1)
+		version();
+
+	/* Turn on verbose mode? */
+	if (verbose_f == 1)
+		verbose_mode = 1;
+
+	/* Turn on logging mode? */
+	if (log_f == 1)
+		logging_mode = 1;
+
+	/* Search for program? */
+	if (find_f == 1) {
+		finding_mode = 1;
+		if (find_command(tool_called, 0, NULL) != NULL)
+			retval = 0;
+		else
+			fprintf(stderr, "xcrun: error: unable to locate command \'%s\'.\n", tool_called);
+	}
+
+	/* Search and execute program. (default behavior) */
 	if (find_command(tool_called, ((argc - argc_offset) - (argc - argc_offset)),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset + 1)))) != NULL)
+		/* NOREACH */
 		retval = 0;
 	else {
 		fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", tool_called);
