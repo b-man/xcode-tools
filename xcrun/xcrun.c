@@ -156,7 +156,7 @@ static char *get_sdk_path(void)
 
 	verbose_printf(stdout, "xcrun: info: attempting to retrieve developer path from configuration file...\n");
 	if ((pathtocfg = getenv("HOME")) == NULL) {
-		fprintf(stderr, "xcode-select: error: failed to read HOME variable.\n");
+		fprintf(stderr, "xcrun: error: failed to read HOME variable.\n");
 		return NULL;
 	}
 
@@ -171,7 +171,7 @@ static char *get_sdk_path(void)
 		value = devpath;
 		fclose(fp);
 	} else {
-		fprintf(stderr, "xcode-select: error: unable to read configuration file. (errno=%s)\n", strerror(errno));
+		fprintf(stderr, "xcrun: error: unable to read configuration file. (errno=%s)\n", strerror(errno));
 		return NULL;
 	}
 
@@ -414,6 +414,7 @@ static int xcrun_main(int argc, char *argv[])
 			retval = 0;
 		else
 			fprintf(stderr, "xcrun: error: unable to locate command \'%s\'.\n", tool_called);
+			exit(1);
 	}
 
 	/* Search and execute program. (default behavior) */
