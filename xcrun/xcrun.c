@@ -404,7 +404,7 @@ static int xcrun_main(int argc, char *argv[])
 
 	/* The last non-option argument may be the command called. */
 	if (optind < argc && ((run_f == 0 || find_f == 0) && tool_called == NULL)) {
-		tool_called = argv[optind++];
+		tool_called = basename(argv[optind++]);
 		++argc_offset;
 	}
 
