@@ -386,8 +386,6 @@ static int xcrun_main(int argc, char *argv[])
 					}
 					break;
 				case '?':
-					printf("optarg = %s\n", optarg);
-					tool_called = basename(optarg);
 				default:
 					help_f = 1;
 					break;
