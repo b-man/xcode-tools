@@ -290,30 +290,31 @@ static int xcrun_main(int argc, char *argv[])
 {
 	int ch;
 	int retval = 1;
+	int optindex = 0;
 	int argc_offset = 0;
 	char *tool_called = NULL;
 	char *sdk = NULL;
 	char *toolchain = NULL;
 
-	int help_f, version_f, verbose_f, sdk_f, toolchain_f, log_f, find_f, run_f, nocache_f, killcache_f, ssdkp_f, ssdkv_f, ssdkpp_f, ssdkpv_f;
-	help_f = version_f = verbose_f = sdk_f = toolchain_f = log_f = find_f = run_f = nocache_f = killcache_f = ssdkp_f = ssdkv_f = ssdkpp_f = ssdkpv_f = 0;
+	static int help_f, verbose_f, log_f, find_f, run_f, nocache_f, killcache_f, version_f, sdk_f, toolchain_f, ssdkp_f, ssdkv_f, ssdkpp_f, ssdkpv_f;
+	help_f = verbose_f = log_f = find_f = run_f = nocache_f = killcache_f = version_f = sdk_f = toolchain_f = ssdkp_f = ssdkv_f = ssdkpp_f = ssdkpv_f = 0;
 
 	/* Supported options */
 	static struct option options[] = {
 		{ "help", no_argument, 0, 'h' },
-		{ "version", no_argument, 0, 'V' },
+		{ "version", no_argument, &version_f, 1 },
 		{ "verbose", no_argument, 0, 'v' },
-		{ "sdk", required_argument, 0, 'S' },
-		{ "toolchain", required_argument, 0, 'T' },
+		{ "sdk", required_argument, &sdk_f, 1 },
+		{ "toolchain", required_argument, &toolchain_f, 1 },
 		{ "log", no_argument, 0, 'l' },
 		{ "find", required_argument, 0, 'f' },
 		{ "run", required_argument, 0, 'r' },
 		{ "no-cache", no_argument, 0, 'n' },
 		{ "kill-cache", no_argument, 0, 'k' },
-		{ "show-sdk-path", no_argument, 0, 'W' },
-		{ "show-sdk-version", no_argument, 0, 'X' },
-		{ "show-sdk-platform-path", no_argument, 0, 'Y' },
-		{ "show-sdk-platform-version", no_argument, 0, 'Z' },
+		{ "show-sdk-path", no_argument, &ssdkp_f, 1 },
+		{ "show-sdk-version", no_argument, &ssdkv_f, 1 },
+		{ "show-sdk-platform-path", no_argument, &ssdkpp_f, 1 },
+		{ "show-sdk-platform-version", no_argument, &ssdkpv_f, 1 },
 		{ NULL, 0, 0, 0 }
 	};
 
@@ -323,36 +324,15 @@ static int xcrun_main(int argc, char *argv[])
 
 	/* Only parse arguments if they are given */
 	if (*(*(argv + 1)) == '-') {
-		while ((ch = getopt_long_only(argc, argv, "hVvS:T:lf:r:nkWXYZ", options, NULL)) != (-1)) {
+		if (strcmp(argv[1], "-") == 0 || strcmp(argv[1], "--") == 0)
+			usage();
+		while ((ch = getopt_long_only(argc, argv, "hvlr:f:nk", options, &optindex)) != (-1)) {
 			switch (ch) {
 				case 'h':
 					help_f = 1;
 					break;
-				case 'V':
-					version_f = 1;
-					break;
 				case 'v':
 					verbose_f = 1;
-					break;
-				case 'S':
-					if (*optarg != '-') {
-						sdk_f = 1;
-						++argc_offset;
-						sdk = optarg;
-					} else {
-						fprintf(stderr, "xcrun: error: sdk flag requires an argument.\n");
-						exit(1);
-					}
-					break;
-				case 'T':
-					if (*optarg != '-') {
-						toolchain_f = 1;
-						++argc_offset;
-						toolchain = optarg;
-					} else {
-						fprintf(stderr, "xcrun: error: toolchain flag requires an argument.\n");
-						exit(1);
-					}
 					break;
 				case 'l':
 					log_f = 1;
@@ -373,17 +353,37 @@ static int xcrun_main(int argc, char *argv[])
 				case 'k':
 					killcache_f = 1;
 					break;
-				case 'W':
-					ssdkp_f = 1;
-					break;
-				case 'X':
-					ssdkv_f = 1;
-					break;
-				case 'Y':
-					ssdkpp_f = 1;
-					break;
-				case 'Z':
-					ssdkpv_f = 1;
+				case 0: /* long-only options */
+					switch (optindex) {
+						case 1: /* --version */
+							break;
+						case 3: /* --sdk */
+							if (*optarg != '-') {
+								++argc_offset;
+								sdk = optarg;
+							} else {
+								fprintf(stderr, "xcrun: error: sdk flag requires an argument.\n");
+								exit(1);
+							}
+							break;
+						case 4: /* --toolchain */
+							if (*optarg != '-') {
+								++argc_offset;
+								toolchain = optarg;
+							} else {
+								fprintf(stderr, "xcrun: error: toolchain flag requires an argument.\n");
+								exit(1);
+							}
+							break;
+						case 10: /* --show-sdk-path */
+							break;
+						case 11: /* --show-sdk-version */
+							break;
+						case 12: /* --show-sdk-platform-path */
+							break;
+						case 13: /* --show-sdk-platform-version */
+							break;
+					}
 					break;
 				case '?':
 				default:
