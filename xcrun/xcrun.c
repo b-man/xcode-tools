@@ -118,7 +118,7 @@ static void usage(void)
 		"  --show-sdk-path             show selected SDK install path		(!!!NOT SUPPORTED YET!!!)\n",
 		"  --show-sdk-version          show selected SDK version			(!!!NOT SUPPORTED YET!!!)\n",
 		"  --show-sdk-platform-path    show selected SDK platform path		(!!!NOT SUPPORTED YET!!!)\n",
-		"  --show-sdk-platform-version show selected SDK platform version	(!!!NOT SUPPORTED YET!!!)\n"
+		"  --show-sdk-platform-version show selected SDK platform version	(!!!NOT SUPPORTED YET!!!)\n\n"
 		);
 
 	exit(0);
@@ -292,8 +292,8 @@ static int xcrun_main(int argc, char *argv[])
 	int retval = 1;
 	int argc_offset = 0;
 	char *tool_called = NULL;
-	char *sdkpath = NULL;
-	char *toolchpath = NULL;
+	char *sdk = NULL;
+	char *toolchain = NULL;
 
 	int help_f, version_f, verbose_f, sdk_f, toolchain_f, log_f, find_f, run_f, nocache_f, killcache_f, ssdkp_f, ssdkv_f, ssdkpp_f, ssdkpv_f;
 	help_f = version_f = verbose_f = sdk_f = toolchain_f = log_f = find_f = run_f = nocache_f = killcache_f = ssdkp_f = ssdkv_f = ssdkpp_f = ssdkpv_f = 0;
@@ -313,7 +313,8 @@ static int xcrun_main(int argc, char *argv[])
 		{ "show-sdk-path", no_argument, 0, 'W' },
 		{ "show-sdk-version", no_argument, 0, 'X' },
 		{ "show-sdk-platform-path", no_argument, 0, 'Y' },
-		{ "show-sdk-platform-version", no_argument, 0, 'Z' }
+		{ "show-sdk-platform-version", no_argument, 0, 'Z' },
+		{ NULL, 0, 0, 0 }
 	};
 
 	/* Print help if nothing is specified */
@@ -322,7 +323,7 @@ static int xcrun_main(int argc, char *argv[])
 
 	/* Only parse arguments if they are given */
 	if (*(*(argv + 1)) == '-') {
-		while ((ch = getopt_long_only(argc, argv, "hvlf:r:nk", options, NULL)) != (-1)) {
+		while ((ch = getopt_long_only(argc, argv, "hVvS:T:lf:r:nkWXYZ", options, NULL)) != (-1)) {
 			switch (ch) {
 				case 'h':
 					help_f = 1;
@@ -334,12 +335,24 @@ static int xcrun_main(int argc, char *argv[])
 					verbose_f = 1;
 					break;
 				case 'S':
-					sdk_f = 1;
-					sdkpath = optarg;
+					if (*optarg != '-') {
+						sdk_f = 1;
+						++argc_offset;
+						sdk = optarg;
+					} else {
+						fprintf(stderr, "xcrun: error: sdk flag requires an argument.\n");
+						exit(1);
+					}
 					break;
 				case 'T':
-					toolchain_f = 1;
-					toolchpath = optarg;
+					if (*optarg != '-') {
+						toolchain_f = 1;
+						++argc_offset;
+						toolchain = optarg;
+					} else {
+						fprintf(stderr, "xcrun: error: toolchain flag requires an argument.\n");
+						exit(1);
+					}
 					break;
 				case 'l':
 					log_f = 1;
@@ -347,10 +360,12 @@ static int xcrun_main(int argc, char *argv[])
 				case 'r':
 					run_f = 1;
 					tool_called = basename(optarg);
+					++argc_offset;
 					break;
 				case 'f':
 					find_f = 1;
 					tool_called = basename(optarg);
+					++argc_offset;
 					break;
 				case 'n':
 					nocache_f = 1;
@@ -382,8 +397,10 @@ static int xcrun_main(int argc, char *argv[])
 			if (ch == 'f' || ch == 'r')
 				break;
 		}
-	} else  /* We are just executing a program. */
+	} else { /* We are just executing a program. */
 		tool_called = basename(argv[1]);
+		++argc_offset;
+	}
 
 	/* Don't continue if we are missing arguments. */
 	if ((verbose_f == 1 || log_f == 1) && tool_called == NULL) {
@@ -418,10 +435,10 @@ static int xcrun_main(int argc, char *argv[])
 	}
 
 	/* Search and execute program. (default behavior) */
-	if (find_command(tool_called, ((argc - argc_offset) - (argc - argc_offset)),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset + 1)))) != NULL)
+	if (find_command(tool_called, ((argc - argc_offset) - (argc - argc_offset)),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset)))) != NULL) {
 		/* NOREACH */
 		retval = 0;
-	else {
+	} else {
 		fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", tool_called);
 	}
 
