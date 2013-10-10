@@ -96,7 +96,7 @@ static void logging_printf(FILE *fp, const char *str, ...)
 static void usage(void)
 {
 	fprintf(stderr, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
-		"Usage: xcrun [options] [-r|-f] <tool name> ... arguments ...\n",
+		"Usage: xcrun [options] <tool name> ... arguments ...\n",
 		"\n",
 		"Find and execute the named command line tool from the active developer directory.\n",
 		"\n",
@@ -413,6 +413,7 @@ static int xcrun_main(int argc, char *argv[])
 		fprintf(stderr, "xcrun: error: specified arguments require -r or -f arguments.\n");
 		exit(1);
 	}
+
 	/* Print help? */
 	if (help_f == 1 || argc < 2)
 		usage();
