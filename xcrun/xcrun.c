@@ -416,6 +416,42 @@ static int xcrun_main(int argc, char *argv[])
 	if (version_f == 1)
 		version();
 
+	/* Show SDK path? */
+	if (ssdkp_f == 1) {
+		fprintf(stderr, "xcrun: error: option not supported yet.\n");
+		exit(1);
+	}
+
+	/* Show SDK version? */
+	if (ssdkv_f == 1) {
+		fprintf(stderr, "xcrun: error: option not supported yet.\n");
+		exit(1);
+	}
+
+	/* Show SDK platform path? */
+	if (ssdkpp_f == 1) {
+		fprintf(stderr, "xcrun: error: option not supported yet.\n");
+		exit(1);
+	}
+
+	/* Show SDK platform version? */
+	if (ssdkpv_f == 1) {
+		fprintf(stderr, "xcrun: error: option not supported yet.\n");
+		exit(1);
+	}
+
+	/* Clear the lookup cache? */
+	if (killcache_f == 1) {
+		fprintf(stderr, "xcrun: error: option not supported yet.\n");
+		exit(1);
+	}
+
+	/* Don't use the lookup cache? */
+	if (nocache_f == 1) {
+		fprintf(stderr, "xcrun: error: option not supported yet.\n");
+		exit(1);
+	}
+
 	/* Turn on verbose mode? */
 	if (verbose_f == 1)
 		verbose_mode = 1;
