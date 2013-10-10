@@ -326,7 +326,7 @@ static int xcrun_main(int argc, char *argv[])
 	if (*(*(argv + 1)) == '-') {
 		if (strcmp(argv[1], "-") == 0 || strcmp(argv[1], "--") == 0)
 			usage();
-		while ((ch = getopt_long_only(argc, argv, "hvlr:f:nk", options, &optindex)) != (-1)) {
+		while ((ch = getopt_long_only(argc, argv, "+hvlr:f:nk", options, &optindex)) != (-1)) {
 			switch (ch) {
 				case 'h':
 					help_f = 1;
@@ -386,6 +386,8 @@ static int xcrun_main(int argc, char *argv[])
 					}
 					break;
 				case '?':
+					printf("optarg = %s\n", optarg);
+					tool_called = basename(optarg);
 				default:
 					help_f = 1;
 					break;
@@ -402,12 +404,17 @@ static int xcrun_main(int argc, char *argv[])
 		++argc_offset;
 	}
 
+	/* The last non-option argument may be the command called. */
+	if (optind < argc && ((run_f == 0 || find_f == 0) && tool_called == NULL)) {
+		tool_called = argv[optind++];
+		++argc_offset;
+	}
+
 	/* Don't continue if we are missing arguments. */
 	if ((verbose_f == 1 || log_f == 1) && tool_called == NULL) {
 		fprintf(stderr, "xcrun: error: specified arguments require -r or -f arguments.\n");
 		exit(1);
 	}
-
 	/* Print help? */
 	if (help_f == 1 || argc < 2)
 		usage();
