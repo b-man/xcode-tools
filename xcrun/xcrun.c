@@ -134,10 +134,10 @@ static void version(void)
 }
 
 /**
- * @func get_sdk_path -- retrieve current developer path
+ * @func get_developer_path -- retrieve current developer path
  * @return: string of current path on success, NULL string on failure
  */
-static char *get_sdk_path(void)
+static char *get_developer_path(void)
 {
 	FILE *fp = NULL;
 	char devpath[PATH_MAX - 1];
@@ -253,9 +253,9 @@ static char *find_command(const char *name, int argc, char *argv[])
 		absl_path = strtok(NULL, delimiter);
 	}
 
-	/* We have searched PATH, but we haven't found our program yet. Try looking at the SDK folder */
+	/* We have searched PATH, but we haven't found our program yet. Try looking at the Developer folder */
 	this_path = (char *)malloc((PATH_MAX - 1));
-	if ((this_path = get_sdk_path()) != NULL) {
+	if ((this_path = get_developer_path()) != NULL) {
 		verbose_printf(stdout, "xcrun: info: checking directory \'%s/usr/bin\' for command \'%s\'...\n", this_path, name);
 		cmd = strncat(strcat(this_path, "/usr/bin/"), name, strlen(name));
 		/* Does it exist? Is it an executable? */
