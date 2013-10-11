@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 #include <limits.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -41,10 +42,10 @@
 #define DARWINSDK_CFG ".darwinsdk.dat"
 
 /**
- * @func usage -- Print helpful information about this program.
- * @arg prog - name of this program
+ * @func usage -- Print helpful information about this tool.
+ * @arg prog - name of this tool
  */
-static void usage(char *prog)
+static void usage(void)
 {
 
 	fprintf(stderr, "%s%s%s%s%s%s%s",
@@ -54,17 +55,27 @@ static void usage(char *prog)
 			"Arguments:\n",
 			"   -print-path                     Prints the path of the current DarwinSDK folder\n",
 			"   -switch <xcode_folder_path>     Sets the path for the current DarwinSDK folder\n",
-			"   -version                        Prints xcode-select version information\n");
+			"   -version                        Prints xcode-select version information\n\n");
 
 	exit(1);
 }
 
 /**
- * @func validate_sdk_path -- validate if requested sdk path exists
+ * @func usage -- Print the tool version.
+ */
+static void version(void)
+{
+	fprintf(stdout, "xcode-select version %s\n", TOOL_VERSION);
+
+	exit(0);
+}
+
+/**
+ * @func validate_directory_path -- validate if requested directory path exists
  * @arg dir - directory to validate
  * @return: 0 on success, 1 on failure
  */
-static int validate_sdk_path(const char *dir)
+static int validate_directory_path(const char *dir)
 {
 	struct stat fstat;
 	int retval = 1;
@@ -82,16 +93,19 @@ static int validate_sdk_path(const char *dir)
 }
 
 /**
- * @func get_sdk_path -- retrieve current sdk path
+ * @func get_developer_path -- retrieve current developer path
  * @return: string of current path on success, NULL string on failure
  */
-static char *get_sdk_path(void)
+static char *get_developer_path(void)
 {
 	FILE *fp = NULL;
 	char devpath[PATH_MAX - 1];
 	char *pathtocfg = NULL;
 	char *darwincfg_path = NULL;
 	char *value = NULL;
+
+	if ((value = getenv("DEVELOPER_DIR")) != NULL)
+		return value;
 
 	memset(devpath, 0, sizeof(devpath));
 
@@ -121,11 +135,11 @@ static char *get_sdk_path(void)
 }
 
 /**
- * @func set_sdk_path -- set the current sdk path
+ * @func set_developer_path -- set the current developer path
  * @arg path - path to set
  * @return: 0 on success, -1 on failure
  */
-static int set_sdk_path(const char *path)
+static int set_developer_path(const char *path)
 {
 	FILE *fp = NULL;
 	char *pathtocfg = NULL;
@@ -156,27 +170,61 @@ static int set_sdk_path(const char *path)
 
 int main(int argc, char *argv[])
 {
-	char *path;
+	int ch;
+	char *path = NULL;
 
 	if (argc < 2)
-		usage(argv[0]);
+		usage();
 
-	if (strcmp(argv[1], "-help") == 0)
-		usage(argv[0]);
-	else if (strcmp(argv[1], "-switch") == 0) {
-		if (validate_sdk_path(argv[2]) == 0)
-			return set_sdk_path(argv[2]);
+	static int help_f, version_f, switch_f, printpath_f;
+	help_f = version_f = switch_f = printpath_f = 0;
+
+	static struct option options[] = {
+		{ "help", no_argument, 0, 'h' },
+		{ "version", no_argument, 0, 'v' },
+		{ "switch", required_argument, 0, 's' },
+		{ "print-path", no_argument, 0, 'p' },
+		{ NULL, 0, 0, 0 }
+	};
+
+	while ((ch = getopt_long_only(argc, argv, "hvs:p", options, NULL)) != (-1)) {
+		switch (ch) {
+			case 'h':
+				help_f = 1;
+				break;
+			case 'v':
+				version_f = 1;
+				break;
+			case 's':
+				switch_f = 1;
+				path = optarg;
+				break;
+			case 'p':
+				printpath_f = 1;
+				break;
+			case '?':
+			default:
+				help_f = 1;
+		}
+	}
+
+	if (help_f == 1)
+		usage();
+
+	if (version_f == 1)
+		version();
+
+	if (switch_f == 1) {
+		if (validate_directory_path(path) == 0)
+			return set_developer_path(path);
 		else
 			return -1;
-	} else if (strcmp(argv[1], "-print-path") == 0) {
-		if ((path = get_sdk_path()) != NULL)
-			printf("%s\n", path);
-		else
-			return -1;
-	} else if (strcmp(argv[1], "-version") == 0) {
-		printf("xcode-select version %s\n", TOOL_VERSION);
-	} else
-		usage(argv[0]);
+	}
+
+	if (printpath_f == 1) {
+		path = get_developer_path();
+		fprintf(stdout, "%s\n", path);
+	}
 
 	return 0;
 }
