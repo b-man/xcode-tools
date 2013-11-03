@@ -4,6 +4,7 @@ CC = clang
 CFLAGS = -Wall -Werror -O2
 
 OBJS := \
+	ini.o \
 	xcrun.o
 
 PROG := xcrun

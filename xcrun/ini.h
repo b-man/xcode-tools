@@ -43,6 +43,9 @@ extern "C" {
 
 #include <stdio.h>
 
+/* Useful macro taken from example/ini_example.c */
+#define MATCH_INI_STON(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
+
 /* Parse given INI-style file. May have [section]s, name=value pairs
    (whitespace stripped), and comments starting with ';' (semicolon). Section
    is "" if name=value pair parsed before any section heading. name:value
