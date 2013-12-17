@@ -91,6 +91,25 @@ static const char *multicall_tool_names[4] = {
 	"xcrun_nocache"
 };
 
+/* Our program's name as called by the user */
+static char *progname;
+
+/* helper function to strip file extensions */
+static char *stripext(char *dst, const char *src)
+{
+	int len;
+	char *s;
+
+	if ((s = strchr(src, '.')) != NULL)
+		len = (s - src);
+	else
+		len = strlen(src);
+
+	strncpy(dst, src, len);
+
+	return dst;
+}
+
 /**
  * @func verbose_printf -- Print output to fp in verbose mode.
  * @arg fp - pointer to file (file, stderr, or stdio)
@@ -130,31 +149,31 @@ static void logging_printf(FILE *fp, const char *str, ...)
  */
 static void usage(void)
 {
-	fprintf(stderr, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
-		"Usage: xcrun [options] <tool name> ... arguments ...\n",
-		"\n",
-		"Find and execute the named command line tool from the active developer directory.\n",
-		"\n",
-		"The active developer directory can be set using `xcode-select`, or via the\n",
-		"DEVELOPER_DIR environment variable. See the xcrun and xcode-select manual\n",
-		"pages for more information.\n",
-		"\n",
-		"Options:\n",
-		"  -h, --help                  show this help message and exit\n",
-		"  --version                   show the xcrun version\n",
-		"  -v, --verbose               show verbose logging output\n",
-		"  --sdk <sdk name>            find the tool for the given SDK name (work in progress - don't use)\n",
-		"  --toolchain <name>          find the tool for the given toolchain (work in progress - don't use)\n",
-		"  -l, --log                   show commands to be executed (with --run)\n",
-		"  -f, --find                  only find and print the tool path\n",
-		"  -r, --run                   find and execute the tool (the default behavior)\n",
-		"  -n, --no-cache              do not use the lookup cache (not implemented yet - does nothing)\n",
-		"  -k, --kill-cache            invalidate all existing cache entries (not implemented yet - does nothing)\n",
-		"  --show-sdk-path             show selected SDK install path\n",
-		"  --show-sdk-version          show selected SDK version\n",
-		"  --show-sdk-platform-path    show selected SDK platform path\n",
+	fprintf(stderr,
+		"Usage: %s [options] <tool name> ... arguments ...\n"
+		"\n"
+		"Find and execute the named command line tool from the active developer directory.\n"
+		"\n"
+		"The active developer directory can be set using `xcode-select`, or via the\n"
+		"DEVELOPER_DIR environment variable. See the xcrun and xcode-select manual\n"
+		"pages for more information.\n"
+		"\n"
+		"Options:\n"
+		"  -h, --help                  show this help message and exit\n"
+		"  --version                   show the xcrun version\n"
+		"  -v, --verbose               show verbose logging output\n"
+		"  --sdk <sdk name>            find the tool for the given SDK name\n"
+		"  --toolchain <name>          find the tool for the given toolchain\n"
+		"  -l, --log                   show commands to be executed (with --run)\n"
+		"  -f, --find                  only find and print the tool path\n"
+		"  -r, --run                   find and execute the tool (the default behavior)\n"
+		"  -n, --no-cache              do not use the lookup cache (not implemented yet - does nothing)\n"
+		"  -k, --kill-cache            invalidate all existing cache entries (not implemented yet - does nothing)\n"
+		"  --show-sdk-path             show selected SDK install path\n"
+		"  --show-sdk-version          show selected SDK version\n"
+		"  --show-sdk-platform-path    show selected SDK platform path\n"
 		"  --show-sdk-platform-version show selected SDK platform version\n\n"
-		);
+		, progname);
 
 	exit(0);
 }
@@ -333,9 +352,9 @@ static char *get_developer_path(void)
 		return value;
 	}
 
-	memset(devpath, 0, sizeof(devpath));
+	bzero(devpath, (PATH_MAX - 1));
 
-	verbose_printf(stdout, "xcrun: info: attempting to retrieve developer path from configuration file...\n");
+	verbose_printf(stdout, "xcrun: info: attempting to retrieve developer path from configuration cache...\n");
 	if ((pathtocfg = getenv("HOME")) == NULL) {
 		fprintf(stderr, "xcrun: error: failed to read HOME variable.\n");
 		return NULL;
@@ -343,8 +362,7 @@ static char *get_developer_path(void)
 
 	darwincfg_path = (char *)malloc((strlen(pathtocfg) + sizeof(DARWINSDK_CFG)));
 
-	strcat(pathtocfg, "/");
-	strcat(darwincfg_path, strcat(pathtocfg, DARWINSDK_CFG));
+	sprintf(darwincfg_path, "%s/%s", pathtocfg, DARWINSDK_CFG);
 
 	if ((fp = fopen(darwincfg_path, "r")) != NULL) {
 		fseek(fp, 0, SEEK_SET);
@@ -352,18 +370,23 @@ static char *get_developer_path(void)
 		value = devpath;
 		fclose(fp);
 	} else {
-		fprintf(stderr, "xcrun: error: unable to read configuration file. (errno=%s)\n", strerror(errno));
+		fprintf(stderr, "xcrun: error: unable to read configuration cache. (errno=%s)\n", strerror(errno));
 		return NULL;
 	}
 
-	verbose_printf(stdout, "xcrun: info: using developer path \'%s\' from configuration file.\n", value);
+	verbose_printf(stdout, "xcrun: info: using developer path \'%s\' from configuration cache.\n", value);
 
 	free(darwincfg_path);
 
 	return value;
 }
 
-char *get_toolchain_path(const char *name)
+/**
+ * @func get_toolchain_path -- Return the specified toolchain path
+ * @arg name - name of the toolchain
+ * @return: absolute path of toolchain on success, exit on failure
+ */
+static char *get_toolchain_path(const char *name)
 {
 	char *path = NULL;
 	char *devpath = NULL;
@@ -386,7 +409,12 @@ char *get_toolchain_path(const char *name)
 	}
 }
 
-char *get_sdk_path(const char *name)
+/**
+ * @func get_sdk_path -- Return the specified sdk path
+ * @arg name - name of the sdk
+ * @return: absolute path of sdk on success, exit on failure
+ */
+static char *get_sdk_path(const char *name)
 {
 	char *path = NULL;
 	char *devpath = NULL;
@@ -422,7 +450,7 @@ static int call_command(const char *cmd, int argc, char *argv[])
 
 	if (logging_mode == 1) {
 		logging_printf(stdout, "xcrun: info: invoking command:\n\t\"%s", cmd);
-		for (i = 1; i < argc; i++)
+		for (i = 0; i < argc; i++)
 			logging_printf(stdout, " %s", argv[i]);
 		logging_printf(stdout, "\"\n");
 	}
@@ -431,93 +459,97 @@ static int call_command(const char *cmd, int argc, char *argv[])
 }
 
 /**
- * @func find_command - Search for a program.
- * @arg name -- name of program
- * @arg argv -- arguments to be passed if program found
- * @return: NULL on failed search or execution
+ * @func search_command -- Search a set of directories for a given command
+ * @arg name - program's name
+ * @arg dirs - set of directories to search, seperated by colons
+ * @return: the program's absolute path on success, NULL on failure
  */
-static char *find_command(const char *name, int argc, char *argv[])
+
+static char *search_command(const char *name, char *dirs)
 {
-	char *cmd = NULL;		/* command's absolute path */
-	char *env_path = NULL;		/* contents of PATH env variable */
+	char *cmd = NULL;			/* command's absolute path */
 	char *absl_path = NULL;		/* path entry in PATH env variable */
-	char *this_path = NULL;		/* the path that might point to the program */
-	char delimiter[2] = ":";	/* delimiter for path enteries in PATH env variable */
+	char delimiter[2] = ":";	/* delimiter for directories in dirs argument */
 
-	/* If we specified a toolchain, only search for program in toolchain path. */
-	if (explicit_toolchain_mode == 1) {
-		printf("DEBUG: todo: search %s\n", get_toolchain_path(current_toolchain));
-		exit(1);
-	}
-
-	/* If we specified an sdk, only search for program in sdk path. */
-	if (explicit_sdk_mode == 1) {
-		printf("DEBUG: todo: search %s\n", get_sdk_path(current_sdk));
-		exit(1);
-	}
-
-	/* Read our PATH environment variable. */
-	if ((env_path = getenv("PATH")) != NULL)
-		absl_path = strtok(env_path, delimiter);
-	else {
-		fprintf(stderr, "xcrun: error: failed to read PATH variable.\n");
-		return NULL;
-	}
+	/* Allocate space for the program's absolute path */
+	cmd = (char *)malloc(PATH_MAX - 1);
 
 	/* Search each path entry in PATH until we find our program. */
+	absl_path = strtok(dirs, delimiter);
 	while (absl_path != NULL) {
-		this_path = (char *)malloc((PATH_MAX - 1));
-
 		verbose_printf(stdout, "xcrun: info: checking directory \'%s\' for command \'%s\'...\n", absl_path, name);
 
 		/* Construct our program's absolute path. */
-		strncpy(this_path, absl_path, strlen(absl_path));
-		cmd = strncat(strcat(this_path, "/"), name, strlen(name));
+		sprintf(cmd, "%s/%s", absl_path, name);
 
 		/* Does it exist? Is it an executable? */
 		if (access(cmd, X_OK) == 0) {
 			verbose_printf(stdout, "xcrun: info: found command's absolute path: \'%s\'\n", cmd);
-			if (finding_mode != 1) {
-				call_command(cmd, argc, argv);
-				/* NOREACH */
-				fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
-				return NULL;
-			} else {
-				fprintf(stdout, "%s\n", cmd);
-				exit(0);
-			}
+			break;
 		}
 
 		/* If not, move onto the next entry.. */
 		absl_path = strtok(NULL, delimiter);
 	}
 
-	/* We have searched PATH, but we haven't found our program yet. Try looking at the Developer folder */
-	this_path = (char *)malloc((PATH_MAX - 1));
-	this_path = developer_dir;
-	if (this_path != NULL) {
-		verbose_printf(stdout, "xcrun: info: checking directory \'%s/usr/bin\' for command \'%s\'...\n", this_path, name);
-		cmd = strncat(strcat(this_path, "/usr/bin/"), name, strlen(name));
-		/* Does it exist? Is it an executable? */
-		if (access(cmd, X_OK) == 0) {
-			verbose_printf(stdout, "xcrun: info: found command's absolute path: \'%s\'\n", cmd);
-			if (finding_mode != 1) {
+	return cmd;
+}
+
+/**
+ * @func request_command - Request a program.
+ * @arg name -- name of program
+ * @arg argv -- arguments to be passed if program found
+ * @return: -1 on failed search, 0 on successful search, no return on execute
+ */
+static int request_command(const char *name, int argc, char *argv[])
+{
+	char *toolch_name = NULL;				/* toolchain name to be used with sdk */
+	char *env_path = NULL;					/* used to hold our PATH env variable */
+	char *cmd = NULL;						/* used to hold our command's absolute path */
+	char search_string[PATH_MAX * 1024];	/* our search string */
+	char sdkinfo_path[PATH_MAX - 1];		/* path to sdk's info.ini */
+
+	/* Read our PATH environment variable. */
+	if ((env_path = getenv("PATH")) == NULL) {
+		fprintf(stderr, "xcrun: error: failed to read PATH variable.\n");
+		return -1;
+	}
+
+	/* If we specified an sdk, search the sdk and it's associated toolchain */
+	if (explicit_sdk_mode == 1) {
+		sprintf(sdkinfo_path, "%s/info.ini", get_sdk_path(current_sdk));
+		toolch_name = strdup(get_sdk_info(sdkinfo_path).toolchain);
+		sprintf(search_string, "%s/usr/bin:%s/usr/bin", get_sdk_path(current_sdk), get_toolchain_path(toolch_name));
+		goto do_search;
+	}
+
+	/* If we specified a toolchain, only search the toolchain */
+	if (explicit_toolchain_mode == 1) {
+		sprintf(search_string, "%s/usr/bin", get_toolchain_path(current_toolchain));
+		goto do_search;
+	}
+
+	/* By default, we search our rootfs and developer dir only */
+	sprintf(search_string, "%s:%s/usr/bin", env_path, developer_dir);
+
+	/* Search each path entry in PATH until we find our program. */
+do_search:
+	if ((cmd = search_command(name, search_string)) != NULL) {
+			if (finding_mode == 1) {
+				fprintf(stdout, "%s\n", cmd);
+				return 0;
+			} else {
 				call_command(cmd, argc, argv);
 				/* NOREACH */
 				fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
-				return NULL;
-			} else {
-				fprintf(stdout, "%s\n", cmd);
-				exit(0);
+				return -1;
 			}
-		}
 	}
 
 	/* We have searched everywhere, but we haven't found our program. State why. */
 	fprintf(stderr, "xcrun: error: can't stat \'%s\' (errno=%s)\n", name, strerror(errno));
 
-	/* Search has failed, return NULL. */
-	return NULL;
+	return -1;
 }
 
 /**
@@ -603,7 +635,14 @@ static int xcrun_main(int argc, char *argv[])
 								++argc_offset;
 								explicit_sdk_mode = 1;
 								sdk = optarg;
-								current_sdk = sdk;
+								/* we support absolute paths and short names */
+								if (*sdk == '/') {
+									current_sdk = (char *)malloc(strlen(basename(sdk)));
+									(void)stripext(current_sdk, basename(sdk));
+								} else {
+									current_sdk = (char *)malloc(strlen(basename(sdk)));
+									(void)stripext(current_sdk, sdk);
+								}
 							} else {
 								fprintf(stderr, "xcrun: error: sdk flag requires an argument.\n");
 								exit(1);
@@ -614,7 +653,14 @@ static int xcrun_main(int argc, char *argv[])
 								++argc_offset;
 								explicit_toolchain_mode = 1;
 								toolchain = optarg;
-								current_toolchain = toolchain;
+								/* we support absolute paths and short names */
+								if (*toolchain == '/') {
+									current_toolchain = (char *)malloc(strlen(basename(toolchain)));
+									(void)stripext(current_toolchain, basename(toolchain));
+								} else {
+									current_toolchain = (char *)malloc(strlen(basename(toolchain)));
+									(void)stripext(current_toolchain, toolchain);
+								}
 							} else {
 								fprintf(stderr, "xcrun: error: toolchain flag requires an argument.\n");
 								exit(1);
@@ -750,7 +796,7 @@ static int xcrun_main(int argc, char *argv[])
 	/* Search for program? */
 	if (find_f == 1) {
 		finding_mode = 1;
-		if (find_command(tool_called, 0, NULL) != NULL)
+		if (request_command(tool_called, 0, NULL) != -1)
 			retval = 0;
 		else
 			fprintf(stderr, "xcrun: error: unable to locate command \'%s\'.\n", tool_called);
@@ -758,7 +804,7 @@ static int xcrun_main(int argc, char *argv[])
 	}
 
 	/* Search and execute program. (default behavior) */
-	if (find_command(tool_called, ((argc - argc_offset) - (argc - argc_offset)),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset)))) != NULL) {
+	if (request_command(tool_called, ((argc - argc_offset) - (argc - argc_offset)),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset)))) != -1) {
 		/* NOREACH */
 		retval = 0;
 	} else {
@@ -793,8 +839,9 @@ int main(int argc, char *argv[])
 	int call_state;
 	char *this_tool = NULL;
 
-	/* Strip out any path name that may have been passed into argv[0]. */
+	/* Strip out any path name that may have been passed into argv[0] */
 	this_tool = basename(argv[0]);
+	progname = this_tool;
 
 	/* Check if we are being treated as a multi-call binary. */
 	call_state = get_multicall_state(this_tool, multicall_tool_names, 4);
@@ -821,7 +868,7 @@ int main(int argc, char *argv[])
 			developer_dir = get_developer_path();
 
 			/* Locate and execute the command */
-			if (find_command(this_tool, argc, argv) != NULL)
+			if (request_command(this_tool, argc, argv) != -1)
 				retval = 0;
 			else {
 				fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", this_tool);

@@ -1,6 +1,6 @@
 PREFIX = /usr
 
-CC = clang
+CC = $(shell xcrun -find clang)
 CFLAGS = -Wall -Werror -O2
 
 OBJS := \
