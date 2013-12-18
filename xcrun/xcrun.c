@@ -519,9 +519,10 @@ static char *search_command(const char *name, char *dirs)
  */
 static int request_command(const char *name, int argc, char *argv[])
 {
-	char *toolch_name = NULL;				/* toolchain name to be used with sdk */
-	char *env_path = NULL;					/* used to hold our PATH env variable */
 	char *cmd = NULL;						/* used to hold our command's absolute path */
+	char *sdk_env = NULL;					/* used for passing SDKROOT in call_command */
+	char *env_path = NULL;					/* used to hold our PATH env variable */
+	char *toolch_name = NULL;				/* toolchain name to be used with sdk */
 	char search_string[PATH_MAX * 1024];	/* our search string */
 
 	/* Read our PATH environment variable. */
@@ -530,14 +531,23 @@ static int request_command(const char *name, int argc, char *argv[])
 		return -1;
 	}
 
-	/* If we specified an sdk, search the sdk and it's associated toolchain */
+	/* If xcrun was called in a multicall state, we still want to specify current_sdk for SDKROOT. */
+	if (current_sdk == NULL) {
+		current_sdk = (char *)malloc(255);
+		if ((sdk_env = getenv("SDKROOT")) != NULL)
+			stripext(current_sdk, basename(sdk_env));
+		else
+			current_sdk = strdup(get_default_info(XCRUN_DEFAULT_CFG).sdk);
+	}
+
+	/* If we specified an sdk, search the sdk and it's associated toolchain. */
 	if (explicit_sdk_mode == 1) {
 		toolch_name = strdup(get_sdk_info(get_sdk_path(current_sdk)).toolchain);
 		sprintf(search_string, "%s/usr/bin:%s/usr/bin", get_sdk_path(current_sdk), get_toolchain_path(toolch_name));
 		goto do_search;
 	}
 
-	/* If we specified a toolchain, only search the toolchain */
+	/* If we specified a toolchain, only search the toolchain. */
 	if (explicit_toolchain_mode == 1) {
 		sprintf(search_string, "%s/usr/bin", get_toolchain_path(current_toolchain));
 		goto do_search;
@@ -727,7 +737,7 @@ static int xcrun_main(int argc, char *argv[])
 	if (version_f == 1)
 		version();
 
-	/* Initialize SDK and Toolchain info if it wasn't already provided. */
+	/* If our SDK and/or Toolchain hasn't been specified, fall back to environment or defaults. */
 	if (current_sdk == NULL) {
 		current_sdk = (char *)malloc(255);
 		if ((sdk_env = getenv("SDKROOT")) != NULL)
