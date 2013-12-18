@@ -1,6 +1,6 @@
 PREFIX = /usr
 
-CC = clang
+CC = $(shell xcrun -sdk DarwinARM -find clang)
 CFLAGS = -Wall -Werror -O2
 
 OBJS := \

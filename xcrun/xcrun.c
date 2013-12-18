@@ -467,7 +467,7 @@ static int call_command(const char *cmd, int argc, char *argv[])
 
 	if (logging_mode == 1) {
 		logging_printf(stdout, "xcrun: info: invoking command:\n\t\"%s", cmd);
-		for (i = 0; i < argc; i++)
+		for (i = 1; i < argc; i++)
 			logging_printf(stdout, " %s", argv[i]);
 		logging_printf(stdout, "\"\n");
 	}
@@ -815,7 +815,7 @@ static int xcrun_main(int argc, char *argv[])
 	}
 
 	/* Search and execute program. (default behavior) */
-	if (request_command(tool_called, ((argc - argc_offset) - (argc - argc_offset)),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset)))) != -1) {
+	if (request_command(tool_called, (argc - argc_offset),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset)))) != -1) {
 		/* NOREACH */
 		retval = -1;
 	} else {
