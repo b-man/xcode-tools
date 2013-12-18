@@ -401,10 +401,12 @@ static char *get_toolchain_path(const char *name)
 			return path;
 		else {
 			fprintf(stderr, "xcrun: error: \'%s\' is not a valid toolchain path.\n", path);
+			free(path);
 			exit(1);
 		}
 	} else {
 		fprintf(stderr, "xcrun: error: failed to retrieve developer path, do you have it set?\n");
+		free(path);
 		exit(1);
 	}
 }
@@ -429,10 +431,12 @@ static char *get_sdk_path(const char *name)
 			return path;
 		else {
 			fprintf(stderr, "xcrun: error: \'%s\' is not a valid sdk path.\n", path);
+			free(path);
 			exit(1);
 		}
 	} else {
 		fprintf(stderr, "xcrun: error: failed to retrieve developer path, do you have it set?\n");
+		free(path);
 		exit(1);
 	}
 }
@@ -537,11 +541,13 @@ do_search:
 	if ((cmd = search_command(name, search_string)) != NULL) {
 			if (finding_mode == 1) {
 				fprintf(stdout, "%s\n", cmd);
+				free(cmd);
 				return 0;
 			} else {
 				call_command(cmd, argc, argv);
 				/* NOREACH */
 				fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
+				free(cmd);
 				return -1;
 			}
 	}

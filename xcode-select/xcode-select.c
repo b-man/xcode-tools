@@ -110,7 +110,7 @@ static char *get_developer_path(void)
 	memset(devpath, 0, sizeof(devpath));
 
 	if ((pathtocfg = getenv("HOME")) == NULL) {
-		fprintf(stderr, "xcode-select: error: failed to read HOME variable.\n");
+		fprintf(stderr, "xcode-select: error: failed to read HOME environment variable.\n");
 		return NULL;
 	}
 
