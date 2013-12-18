@@ -63,10 +63,8 @@ typedef struct {
 
 /* xcrun default configuration struct */
 typedef struct {
-	const char *sdkname;
-	const char *sdkvers;
-	const char *toolchname;
-	const char *toolchvers;
+	const char *sdk;
+	const char *toolchain;
 } default_config;
 
 /* Output mode flags */
@@ -95,7 +93,7 @@ static const char *multicall_tool_names[4] = {
 static char *progname;
 
 /* helper function to strip file extensions */
-static char *stripext(char *dst, const char *src)
+static void stripext(char *dst, const char *src)
 {
 	int len;
 	char *s;
@@ -106,8 +104,6 @@ static char *stripext(char *dst, const char *src)
 		len = strlen(src);
 
 	strncpy(dst, src, len);
-
-	return dst;
 }
 
 /**
@@ -217,7 +213,7 @@ static int validate_directory_path(const char *dir)
  * @arg value - ini variable value (see ini.h)
  * @return: 1 on success, 0 on failure
  */
-/*
+#if 0
 static int toolchain_cfg_handler(void *user, const char *section, const char *name, const char *value)
 {
 	toolchain_config *config = (toolchain_config *)user;
@@ -231,7 +227,8 @@ static int toolchain_cfg_handler(void *user, const char *section, const char *na
 
 	return 1;
 }
-*/
+#endif
+
 /**
  * @func sdk_cfg_handler -- handler used to process sdk info.ini contents
  * @arg user - ini user pointer (see ini.h)
@@ -269,13 +266,9 @@ static int default_cfg_handler(void *user, const char *section, const char *name
 	default_config *config = (default_config *)user;
 
 	if (MATCH_INI_STON("SDK", "name"))
-		config->sdkname = strdup(value);
-	else if (MATCH_INI_STON("SDK", "version"))
-		config->sdkvers = strdup(value);
+		config->sdk = strdup(value);
 	else if (MATCH_INI_STON("TOOLCHAIN", "name"))
-		config->toolchname = strdup(value);
-	else if (MATCH_INI_STON("TOOLCHAIN", "version"))
-		config->toolchvers = strdup(value);
+		config->toolchain = strdup(value);
 	else
 		return 0;
 
@@ -287,19 +280,26 @@ static int default_cfg_handler(void *user, const char *section, const char *name
  * @arg path - path to toolchain's info.ini
  * @return: struct containing toolchain config info
  */
-/*
+#if 0
 static toolchain_config get_toolchain_info(const char *path)
 {
 	toolchain_config config;
+	char *info_path = NULL;
 
-	if (ini_parse(path, toolchain_cfg_handler, &config) != (-1))
+	info_path = (char *)malloc(PATH_MAX - 1);
+	sprintf(info_path, "%s/info.ini", path);
+
+	if (ini_parse(info_path, toolchain_cfg_handler, &config) != (-1)) {
+		free(info_path);
 		return config;
-	else {
-		fprintf(stderr, "xcrun: error: failed to retrieve toolchain info from '\%s\'. (errno=%s)\n", path, strerror(errno));
+	} else {
+		fprintf(stderr, "xcrun: error: failed to retrieve toolchain info from '\%s\'. (errno=%s)\n", info_path, strerror(errno));
+		free(info_path);
 		exit(1);
 	}
 }
-*/
+#endif
+
 /**
  * @func get_sdk_info -- fetch config info from a toolchain's info.ini
  * @arg path - path to sdk's info.ini
@@ -308,14 +308,21 @@ static toolchain_config get_toolchain_info(const char *path)
 static sdk_config get_sdk_info(const char *path)
 {
 	sdk_config config;
+	char *info_path = NULL;
 
-	if (ini_parse(path, sdk_cfg_handler, &config) != (-1))
+	info_path = (char *)malloc(PATH_MAX - 1);
+	sprintf(info_path, "%s/info.ini", path);
+
+	if (ini_parse(info_path, sdk_cfg_handler, &config) != (-1)) {
+		free(info_path);
 		return config;
-	else {
-		fprintf(stderr, "xcrun: error: failed to retrieve sdk info from '\%s\'. (errno=%s)\n", path, strerror(errno));
+	} else {
+		fprintf(stderr, "xcrun: error: failed to retrieve sdk info from '\%s\'. (errno=%s)\n", info_path, strerror(errno));
+		free(info_path);
 		exit(1);
 	}
 }
+
 /**
  * @func get_default_info -- fetch default configuration for xcrun
  * @arg path - path to xcrun.ini
@@ -392,7 +399,6 @@ static char *get_toolchain_path(const char *name)
 	char *devpath = NULL;
 
 	devpath = developer_dir;
-
 	path = (char *)malloc(PATH_MAX - 1);
 
 	if (devpath != NULL) {
@@ -422,7 +428,6 @@ static char *get_sdk_path(const char *name)
 	char *devpath = NULL;
 
 	devpath = developer_dir;
-
 	path = (char *)malloc(PATH_MAX - 1);
 
 	if (devpath != NULL) {
@@ -451,6 +456,14 @@ static char *get_sdk_path(const char *name)
 static int call_command(const char *cmd, int argc, char *argv[])
 {
 	int i;
+	char *envp[2] = { NULL };
+
+	/*
+	 * Pass SDKROOT to the called program's environment.
+	 * This is used for when programs such as clang need to know the location of the sdk.
+	 */
+	envp[0] = (char *)malloc(PATH_MAX - 1);
+	sprintf(envp[0], "SDKROOT=%s", get_sdk_path(current_sdk));
 
 	if (logging_mode == 1) {
 		logging_printf(stdout, "xcrun: info: invoking command:\n\t\"%s", cmd);
@@ -459,7 +472,7 @@ static int call_command(const char *cmd, int argc, char *argv[])
 		logging_printf(stdout, "\"\n");
 	}
 
-	return execv(cmd, argv);
+	return execve(cmd, argv, envp);
 }
 
 /**
@@ -468,7 +481,6 @@ static int call_command(const char *cmd, int argc, char *argv[])
  * @arg dirs - set of directories to search, seperated by colons
  * @return: the program's absolute path on success, NULL on failure
  */
-
 static char *search_command(const char *name, char *dirs)
 {
 	char *cmd = NULL;			/* command's absolute path */
@@ -511,7 +523,6 @@ static int request_command(const char *name, int argc, char *argv[])
 	char *env_path = NULL;					/* used to hold our PATH env variable */
 	char *cmd = NULL;						/* used to hold our command's absolute path */
 	char search_string[PATH_MAX * 1024];	/* our search string */
-	char sdkinfo_path[PATH_MAX - 1];		/* path to sdk's info.ini */
 
 	/* Read our PATH environment variable. */
 	if ((env_path = getenv("PATH")) == NULL) {
@@ -521,8 +532,7 @@ static int request_command(const char *name, int argc, char *argv[])
 
 	/* If we specified an sdk, search the sdk and it's associated toolchain */
 	if (explicit_sdk_mode == 1) {
-		sprintf(sdkinfo_path, "%s/info.ini", get_sdk_path(current_sdk));
-		toolch_name = strdup(get_sdk_info(sdkinfo_path).toolchain);
+		toolch_name = strdup(get_sdk_info(get_sdk_path(current_sdk)).toolchain);
 		sprintf(search_string, "%s/usr/bin:%s/usr/bin", get_sdk_path(current_sdk), get_toolchain_path(toolch_name));
 		goto do_search;
 	}
@@ -573,7 +583,9 @@ static int xcrun_main(int argc, char *argv[])
 	char *sdk = NULL;
 	char *toolchain = NULL;
 	char *tool_called = NULL;
-	char sdkinfo_path[PATH_MAX - 1];
+
+	char *sdk_env = NULL;
+	char *toolchain_env = NULL;
 
 	static int help_f, verbose_f, log_f, find_f, run_f, nocache_f, killcache_f, version_f, sdk_f, toolchain_f, ssdkp_f, ssdkv_f, ssdkpp_f, ssdkpv_f;
 	help_f = verbose_f = log_f = find_f = run_f = nocache_f = killcache_f = version_f = sdk_f = toolchain_f = ssdkp_f = ssdkv_f = ssdkpp_f = ssdkpv_f = 0;
@@ -641,14 +653,12 @@ static int xcrun_main(int argc, char *argv[])
 								++argc_offset;
 								explicit_sdk_mode = 1;
 								sdk = optarg;
+								current_sdk = (char *)malloc(255);
 								/* we support absolute paths and short names */
-								if (*sdk == '/') {
-									current_sdk = (char *)malloc(strlen(basename(sdk)));
-									(void)stripext(current_sdk, basename(sdk));
-								} else {
-									current_sdk = (char *)malloc(strlen(basename(sdk)));
-									(void)stripext(current_sdk, sdk);
-								}
+								if (*sdk == '/')
+									stripext(current_sdk, basename(sdk));
+								else
+									stripext(current_sdk, sdk);
 							} else {
 								fprintf(stderr, "xcrun: error: sdk flag requires an argument.\n");
 								exit(1);
@@ -659,14 +669,12 @@ static int xcrun_main(int argc, char *argv[])
 								++argc_offset;
 								explicit_toolchain_mode = 1;
 								toolchain = optarg;
+								current_toolchain = (char *)malloc(255);
 								/* we support absolute paths and short names */
-								if (*toolchain == '/') {
-									current_toolchain = (char *)malloc(strlen(basename(toolchain)));
-									(void)stripext(current_toolchain, basename(toolchain));
-								} else {
-									current_toolchain = (char *)malloc(strlen(basename(toolchain)));
-									(void)stripext(current_toolchain, toolchain);
-								}
+								if (*toolchain == '/')
+									stripext(current_toolchain, basename(toolchain));
+								else
+									stripext(current_toolchain, toolchain);
 							} else {
 								fprintf(stderr, "xcrun: error: toolchain flag requires an argument.\n");
 								exit(1);
@@ -719,39 +727,32 @@ static int xcrun_main(int argc, char *argv[])
 	if (version_f == 1)
 		version();
 
-	/* If we get here, we need developer dir info */
-	developer_dir = get_developer_path();
+	/* Initialize SDK and Toolchain info if it wasn't already provided. */
+	if (current_sdk == NULL) {
+		current_sdk = (char *)malloc(255);
+		if ((sdk_env = getenv("SDKROOT")) != NULL)
+			stripext(current_sdk, basename(sdk_env));
+		else
+			current_sdk = strdup(get_default_info(XCRUN_DEFAULT_CFG).sdk);
+	}
+
+	if (current_toolchain == NULL) {
+		current_toolchain = (char *)malloc(255);
+		if ((toolchain_env = getenv("TOOLCHAINS")) != NULL)
+			stripext(current_toolchain, basename(toolchain_env));
+		else
+			current_toolchain = strdup(get_default_info(XCRUN_DEFAULT_CFG).toolchain);
+	}
 
 	/* Show SDK path? */
 	if (ssdkp_f == 1) {
-		if (sdk == NULL)
-			printf("%s\n", get_sdk_path(get_default_info(XCRUN_DEFAULT_CFG).sdkname));
-		else
-			printf("%s\n", get_sdk_path(sdk));
+		printf("%s\n", get_sdk_path(current_sdk));
 		exit(0);
 	}
 
 	/* Show SDK version? */
 	if (ssdkv_f == 1) {
-		if (sdk == NULL)
-			printf("%s SDK version %s\n", get_default_info(XCRUN_DEFAULT_CFG).sdkname, get_default_info(XCRUN_DEFAULT_CFG).sdkvers);
-		else {
-			memset(sdkinfo_path, 0, sizeof(sdkinfo_path));
-
-			/* -sdk flag supports both relative names and absolute paths. */
-			if (*sdk != '/')
-				sprintf(sdkinfo_path, "%s/info.ini", get_sdk_path(sdk));
-			else {
-				if (validate_directory_path(sdk) != (-1))
-					sprintf(sdkinfo_path, "%s/info.ini", sdk);
-				else {
-					fprintf(stderr, "xcrun: error: \'%s\' is not a valid path\n", sdk);
-					exit(1);
-				}
-			}
-
-			printf("%s SDK version %s\n", get_sdk_info(sdkinfo_path).name, get_sdk_info(sdkinfo_path).version);
-		}
+		printf("%s SDK version %s\n", get_sdk_info(get_sdk_path(current_sdk)).name, get_sdk_info(get_sdk_path(current_sdk)).version);
 		exit(0);
 	}
 
@@ -763,10 +764,7 @@ static int xcrun_main(int argc, char *argv[])
 
 	/* Show SDK platform version? */
 	if (ssdkpv_f == 1) {
-		if (sdk == NULL)
-			printf("%s SDK Platform version %s\n", get_default_info(XCRUN_DEFAULT_CFG).sdkname, get_default_info(XCRUN_DEFAULT_CFG).sdkvers);
-		else
-			printf("%s SDK Platform version %s\n", get_sdk_info(get_sdk_path(sdk)).name, get_sdk_info(get_sdk_path(sdk)).version);
+		printf("%s SDK Platform version %s\n", get_sdk_info(get_sdk_path(current_sdk)).name, get_sdk_info(get_sdk_path(current_sdk)).version);
 		exit(0);
 	}
 
@@ -790,14 +788,11 @@ static int xcrun_main(int argc, char *argv[])
 	if (log_f == 1)
 		logging_mode = 1;
 
-
-	/* If toolchain isn't set, use default. */
-	if (toolchain == NULL)
-		toolchain = (char *)get_default_info(XCRUN_DEFAULT_CFG).toolchname;
-
-	/* If sdk isn't set, use default. */
-	if (sdk == NULL)
-		sdk = (char *)get_default_info(XCRUN_DEFAULT_CFG).sdkname;
+	/* Before we continue, double check if we have a tool to call. */
+	if (tool_called == NULL) {
+		fprintf(stderr, "xcrun: error: no tool specified.\n");
+		exit(1);
+	}
 
 	/* Search for program? */
 	if (find_f == 1) {
@@ -812,7 +807,7 @@ static int xcrun_main(int argc, char *argv[])
 	/* Search and execute program. (default behavior) */
 	if (request_command(tool_called, ((argc - argc_offset) - (argc - argc_offset)),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset)))) != -1) {
 		/* NOREACH */
-		retval = 0;
+		retval = -1;
 	} else {
 		fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", tool_called);
 	}
@@ -849,6 +844,9 @@ int main(int argc, char *argv[])
 	this_tool = basename(argv[0]);
 	progname = this_tool;
 
+	/* Get our developer dir */
+	developer_dir = get_developer_path();
+
 	/* Check if we are being treated as a multi-call binary. */
 	call_state = get_multicall_state(this_tool, multicall_tool_names, 4);
 
@@ -870,12 +868,9 @@ int main(int argc, char *argv[])
 			break;
 		case -1:
 		default: /* called as tool name */
-			/* Retrieve developer dir info */
-			developer_dir = get_developer_path();
-
 			/* Locate and execute the command */
 			if (request_command(this_tool, argc, argv) != -1)
-				retval = 0;
+				retval = -1; /* NOREACH */
 			else {
 				fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", this_tool);
 			}
