@@ -523,14 +523,14 @@ static char *search_command(const char *name, char *dirs)
  */
 static int request_command(const char *name, int argc, char *argv[])
 {
-	char *cmd = NULL;						/* used to hold our command's absolute path */
-	char *sdk_env = NULL;					/* used for passing SDKROOT in call_command */
-	char *env_path = NULL;					/* used to hold our PATH env variable */
-	char *toolch_name = NULL;				/* toolchain name to be used with sdk */
+	char *cmd = NULL;	/* used to hold our command's absolute path */
+	char *sdk_env = NULL;	/* used for passing SDKROOT in call_command */
+	char *path_string = NULL;	/* used to hold our PATH env variable */
+	char *toolch_name = NULL;	/* toolchain name to be used with sdk */
 	char search_string[PATH_MAX * 1024];	/* our search string */
 
 	/* Read our PATH environment variable. */
-	if ((env_path = getenv("PATH")) == NULL) {
+	if ((path_string = getenv("PATH")) == NULL) {
 		fprintf(stderr, "xcrun: error: failed to read PATH variable.\n");
 		return -1;
 	}
@@ -544,27 +544,27 @@ static int request_command(const char *name, int argc, char *argv[])
 			current_sdk = strdup(get_default_info(XCRUN_DEFAULT_CFG).sdk);
 	}
 
-	/* If we explicitly specified an sdk, search the sdk and it's associated toolchain. */
+	/* If we implicitly specified an sdk, search the sdk and it's associated toolchain. */
 	if (explicit_sdk_mode == 1) {
 		toolch_name = strdup(get_sdk_info(get_sdk_path(current_sdk)).toolchain);
 		sprintf(search_string, "%s/usr/bin:%s/usr/bin", get_sdk_path(current_sdk), get_toolchain_path(toolch_name));
 		goto do_search;
 	}
 
-	/* If we explicitly specified a toolchain, only search the toolchain. */
+	/* If we implicitly specified a toolchain, only search the toolchain. */
 	if (explicit_toolchain_mode == 1) {
 		sprintf(search_string, "%s/usr/bin", get_toolchain_path(current_toolchain));
 		goto do_search;
 	}
 
 	/* By default, we search our rootfs and developer dir only */
-	sprintf(search_string, "%s:%s/usr/bin", env_path, developer_dir);
+	sprintf(search_string, "%s:%s/usr/bin", path_string, developer_dir);
 
-	/* If we implicitly specified an SDK, append the SDK's path to the search string. */
+	/* If we explicitly specified an SDK, append the SDK's path to the search string. */
 	if (alternate_sdk_path != NULL)
 		sprintf((search_string + strlen(search_string)), ":%s/usr/bin", alternate_sdk_path);
 
-	/* If we implicitly specified a toolchain, append the toolchain's path to the search string. */
+	/* If we explicitly specified a toolchain, append the toolchain's path to the search string. */
 	if (alternate_toolchain_path != NULL)
 		sprintf((search_string + strlen(search_string)), ":%s/usr/bin", alternate_toolchain_path);
 
