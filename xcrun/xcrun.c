@@ -561,16 +561,12 @@ static int request_command(const char *name, int argc, char *argv[])
 	sprintf(search_string, "%s:%s/usr/bin", env_path, developer_dir);
 
 	/* If we implicitly specified an SDK, append the SDK's path to the search string. */
-	if (alternate_sdk_path != NULL) {
-		strcat(search_string, ":");
-		strncat(search_string, alternate_sdk_path, strlen(alternate_sdk_path));
-	}
+	if (alternate_sdk_path != NULL)
+		sprintf((search_string + strlen(search_string)), ":%s/usr/bin", alternate_sdk_path);
 
 	/* If we implicitly specified a toolchain, append the toolchain's path to the search string. */
-	if (alternate_toolchain_path != NULL) {
-		strcat(search_string, ":");
-		strncat(search_string, alternate_toolchain_path, strlen(alternate_toolchain_path));
-	}
+	if (alternate_toolchain_path != NULL)
+		sprintf((search_string + strlen(search_string)), ":%s/usr/bin", alternate_toolchain_path);
 
 	/* Search each path entry in PATH until we find our program. */
 do_search:
