@@ -81,6 +81,10 @@ static char *developer_dir = NULL;
 static char *current_sdk = NULL;
 static char *current_toolchain = NULL;
 
+/* Alternate behavior flags */
+static char *alternate_sdk_path = NULL;
+static char *alternate_toolchain_path = NULL;
+
 /* Ways that this tool may be called */
 static const char *multicall_tool_names[4] = {
 	"xcrun",
@@ -483,7 +487,7 @@ static int call_command(const char *cmd, int argc, char *argv[])
  */
 static char *search_command(const char *name, char *dirs)
 {
-	char *cmd = NULL;			/* command's absolute path */
+	char *cmd = NULL;	/* command's absolute path */
 	char *absl_path = NULL;		/* path entry in PATH env variable */
 	char delimiter[2] = ":";	/* delimiter for directories in dirs argument */
 
@@ -540,14 +544,14 @@ static int request_command(const char *name, int argc, char *argv[])
 			current_sdk = strdup(get_default_info(XCRUN_DEFAULT_CFG).sdk);
 	}
 
-	/* If we specified an sdk, search the sdk and it's associated toolchain. */
+	/* If we explicitly specified an sdk, search the sdk and it's associated toolchain. */
 	if (explicit_sdk_mode == 1) {
 		toolch_name = strdup(get_sdk_info(get_sdk_path(current_sdk)).toolchain);
 		sprintf(search_string, "%s/usr/bin:%s/usr/bin", get_sdk_path(current_sdk), get_toolchain_path(toolch_name));
 		goto do_search;
 	}
 
-	/* If we specified a toolchain, only search the toolchain. */
+	/* If we explicitly specified a toolchain, only search the toolchain. */
 	if (explicit_toolchain_mode == 1) {
 		sprintf(search_string, "%s/usr/bin", get_toolchain_path(current_toolchain));
 		goto do_search;
@@ -555,6 +559,18 @@ static int request_command(const char *name, int argc, char *argv[])
 
 	/* By default, we search our rootfs and developer dir only */
 	sprintf(search_string, "%s:%s/usr/bin", env_path, developer_dir);
+
+	/* If we implicitly specified an SDK, append the SDK's path to the search string. */
+	if (alternate_sdk_path != NULL) {
+		strcat(search_string, ":");
+		strncat(search_string, alternate_sdk_path, strlen(alternate_sdk_path));
+	}
+
+	/* If we implicitly specified a toolchain, append the toolchain's path to the search string. */
+	if (alternate_toolchain_path != NULL) {
+		strcat(search_string, ":");
+		strncat(search_string, alternate_toolchain_path, strlen(alternate_toolchain_path));
+	}
 
 	/* Search each path entry in PATH until we find our program. */
 do_search:
@@ -661,14 +677,18 @@ static int xcrun_main(int argc, char *argv[])
 						case 3: /* --sdk */
 							if (*optarg != '-') {
 								++argc_offset;
-								explicit_sdk_mode = 1;
 								sdk = optarg;
-								current_sdk = (char *)malloc(255);
 								/* we support absolute paths and short names */
-								if (*sdk == '/')
-									stripext(current_sdk, basename(sdk));
-								else
+								if (*sdk == '/') {
+									if (validate_directory_path(sdk) != (-1))
+										alternate_sdk_path = sdk;
+									else
+										exit(1);
+								} else {
+									current_sdk = (char *)malloc(255);
+									explicit_sdk_mode = 1;
 									stripext(current_sdk, sdk);
+								}
 							} else {
 								fprintf(stderr, "xcrun: error: sdk flag requires an argument.\n");
 								exit(1);
@@ -677,14 +697,18 @@ static int xcrun_main(int argc, char *argv[])
 						case 4: /* --toolchain */
 							if (*optarg != '-') {
 								++argc_offset;
-								explicit_toolchain_mode = 1;
 								toolchain = optarg;
-								current_toolchain = (char *)malloc(255);
 								/* we support absolute paths and short names */
-								if (*toolchain == '/')
-									stripext(current_toolchain, basename(toolchain));
-								else
+								if (*toolchain == '/') {
+									if (validate_directory_path(toolchain) != (-1))
+										alternate_toolchain_path = toolchain;
+									else
+										exit(1);
+								} else {
+									current_toolchain = (char *)malloc(255);
+									explicit_toolchain_mode = 1;
 									stripext(current_toolchain, toolchain);
+								}
 							} else {
 								fprintf(stderr, "xcrun: error: toolchain flag requires an argument.\n");
 								exit(1);
