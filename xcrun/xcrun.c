@@ -48,6 +48,13 @@
 #define DARWINSDK_CFG ".darwinsdk.dat"
 #define XCRUN_DEFAULT_CFG "/etc/xcrun.ini"
 
+/* Deployment targets - used for tools such as ld */
+#ifdef USE_IOS_DEPLOYMENT_TARGET
+#define DEFAULT_DEPLOYMENT_TARGET "4.3.5"
+#else
+#define DEFAULT_DEPLOYMENT_TARGET "10.6.0"
+#endif
+
 /* Toolchain configuration struct */
 typedef struct {
 	const char *name;
@@ -108,6 +115,23 @@ static void stripext(char *dst, const char *src)
 		len = strlen(src);
 
 	strncpy(dst, src, len);
+}
+
+/* helper function to test for the authenticity of an sdk */
+static int test_sdk_authenticity(const char *path)
+{
+	int retval = 0;
+	char *fname = NULL;
+
+	fname = (char *)malloc(PATH_MAX - 1);
+
+	sprintf(fname, "%s/info.ini", path);
+	if (access(fname, F_OK) != (-1))
+		retval = 1;
+
+	free(fname);
+
+	return retval;
 }
 
 /**
@@ -460,14 +484,27 @@ static char *get_sdk_path(const char *name)
 static int call_command(const char *cmd, int argc, char *argv[])
 {
 	int i;
-	char *envp[2] = { NULL };
+	char *envp[5] = { NULL };
 
 	/*
-	 * Pass SDKROOT to the called program's environment.
-	 * This is used for when programs such as clang need to know the location of the sdk.
+	 * Pass SDKROOT, PATH, and MACOSX_DEPLOYMENT_TARGET to the called program's environment.
+	 * SDKROOT is used for when programs such as clang need to know the location of the sdk.
+	 * PATH is used for when programs such as clang need to call on another program (such as the linker).
+	 * MACOSX_DEPLOYMENT_TARGET is used for tools like ld that need to set the minimum compatibility
+	 * version number for a linked binary
 	 */
 	envp[0] = (char *)malloc(PATH_MAX - 1);
+	envp[1] = (char *)malloc(PATH_MAX - 1);
+	envp[2] = (char *)malloc(255);
+	envp[3] = (char *)malloc(255);
+
 	sprintf(envp[0], "SDKROOT=%s", get_sdk_path(current_sdk));
+	sprintf(envp[1], "PATH=%s/usr/bin:%s", developer_dir, get_toolchain_path(current_toolchain));
+#ifdef USE_IOS_DEPLOYMENT_TARGET
+	sprintf(envp[2], "IOS_DEPLOYMENT_TARGET=%s", DEFAULT_DEPLOYMENT_TARGET);
+#else
+	sprintf(envp[3], "MACOSX_DEPLOYMENT_TARGET=%s", DEFAULT_DEPLOYMENT_TARGET);
+#endif
 
 	if (logging_mode == 1) {
 		logging_printf(stdout, "xcrun: info: invoking command:\n\t\"%s", cmd);
@@ -488,13 +525,13 @@ static int call_command(const char *cmd, int argc, char *argv[])
 static char *search_command(const char *name, char *dirs)
 {
 	char *cmd = NULL;	/* command's absolute path */
-	char *absl_path = NULL;		/* path entry in PATH env variable */
+	char *absl_path = NULL;		/* path entry to search */
 	char delimiter[2] = ":";	/* delimiter for directories in dirs argument */
 
 	/* Allocate space for the program's absolute path */
 	cmd = (char *)malloc(PATH_MAX - 1);
 
-	/* Search each path entry in PATH until we find our program. */
+	/* Search each path entry in dirs until we find our program. */
 	absl_path = strtok(dirs, delimiter);
 	while (absl_path != NULL) {
 		verbose_printf(stdout, "xcrun: info: checking directory \'%s\' for command \'%s\'...\n", absl_path, name);
@@ -525,17 +562,14 @@ static int request_command(const char *name, int argc, char *argv[])
 {
 	char *cmd = NULL;	/* used to hold our command's absolute path */
 	char *sdk_env = NULL;	/* used for passing SDKROOT in call_command */
-	char *path_string = NULL;	/* used to hold our PATH env variable */
 	char *toolch_name = NULL;	/* toolchain name to be used with sdk */
+	char *toolchain_env = NULL;	/* used for passing PATH in call_command */
 	char search_string[PATH_MAX * 1024];	/* our search string */
 
-	/* Read our PATH environment variable. */
-	if ((path_string = getenv("PATH")) == NULL) {
-		fprintf(stderr, "xcrun: error: failed to read PATH variable.\n");
-		return -1;
-	}
-
-	/* If xcrun was called in a multicall state, we still want to specify current_sdk for SDKROOT. */
+	/* 
+	 * If xcrun was called in a multicall state, we still want to specify current_sdk for SDKROOT and
+	 * current_toolchain for PATH.
+	 */
 	if (current_sdk == NULL) {
 		current_sdk = (char *)malloc(255);
 		if ((sdk_env = getenv("SDKROOT")) != NULL)
@@ -544,31 +578,51 @@ static int request_command(const char *name, int argc, char *argv[])
 			current_sdk = strdup(get_default_info(XCRUN_DEFAULT_CFG).sdk);
 	}
 
+	if (current_toolchain == NULL) {
+		current_toolchain = (char *)malloc(255);
+		if ((toolchain_env = getenv("TOOLCHAINS")) != NULL)
+			stripext(current_toolchain, basename(toolchain_env));
+		else
+			current_toolchain = strdup(get_default_info(XCRUN_DEFAULT_CFG).toolchain);
+	}
+
+	/* No matter the circumstance, search the developer dir. */
+	sprintf(search_string, "%s/usr/bin:", developer_dir);
+
 	/* If we implicitly specified an sdk, search the sdk and it's associated toolchain. */
 	if (explicit_sdk_mode == 1) {
 		toolch_name = strdup(get_sdk_info(get_sdk_path(current_sdk)).toolchain);
-		sprintf(search_string, "%s/usr/bin:%s/usr/bin", get_sdk_path(current_sdk), get_toolchain_path(toolch_name));
+		sprintf((search_string + strlen(search_string)), "%s/usr/bin:%s/usr/bin", get_sdk_path(current_sdk), get_toolchain_path(toolch_name));
 		goto do_search;
 	}
 
 	/* If we implicitly specified a toolchain, only search the toolchain. */
 	if (explicit_toolchain_mode == 1) {
-		sprintf(search_string, "%s/usr/bin", get_toolchain_path(current_toolchain));
+		sprintf((search_string + strlen(search_string)), "%s/usr/bin", get_toolchain_path(current_toolchain));
 		goto do_search;
 	}
 
-	/* By default, we search our rootfs and developer dir only */
-	sprintf(search_string, "%s:%s/usr/bin", path_string, developer_dir);
+	/* If we explicitly specified an SDK, append it to the search string. */
+	if (alternate_sdk_path != NULL) {
+		sprintf((search_string + strlen(search_string)), "%s/usr/bin:", alternate_sdk_path);
+		/* We also want to append an associated toolchain if this is really an SDK folder. */
+		if (test_sdk_authenticity(alternate_sdk_path) == 1) {
+			toolch_name = strdup(get_sdk_info(alternate_sdk_path).toolchain);
+			sprintf((search_string + strlen(search_string)), "%s/usr/bin", get_toolchain_path(toolch_name));
+			/* We now have a toolchain, so skip to search. */
+			goto do_search;
+		}
+	}
 
-	/* If we explicitly specified an SDK, append the SDK's path to the search string. */
-	if (alternate_sdk_path != NULL)
-		sprintf((search_string + strlen(search_string)), ":%s/usr/bin", alternate_sdk_path);
-
-	/* If we explicitly specified a toolchain, append the toolchain's path to the search string. */
+	/* If we explicitly specified a toolchain, append it to the search string. */
 	if (alternate_toolchain_path != NULL)
-		sprintf((search_string + strlen(search_string)), ":%s/usr/bin", alternate_toolchain_path);
+		sprintf((search_string + strlen(search_string)), "%s/usr/bin", alternate_toolchain_path);
 
-	/* Search each path entry in PATH until we find our program. */
+	/* By default, we search our developer dir, our default sdk, and our default toolchain only. */
+	if (explicit_sdk_mode == 0 && explicit_toolchain_mode == 0 && alternate_toolchain_path == NULL && alternate_sdk_path == NULL)
+		sprintf((search_string + strlen(search_string)), "%s/usr/bin:%s/usr/bin", get_sdk_path(current_sdk), get_toolchain_path(current_toolchain));
+
+	/* Search each path entry in search_string until we find our program. */
 do_search:
 	if ((cmd = search_command(name, search_string)) != NULL) {
 			if (finding_mode == 1) {
@@ -799,16 +853,12 @@ static int xcrun_main(int argc, char *argv[])
 	}
 
 	/* Clear the lookup cache? */
-	if (killcache_f == 1) {
-		fprintf(stderr, "xcrun: error: option not supported yet.\n");
-		exit(1);
-	}
+	if (killcache_f == 1)
+		fprintf(stderr, "xcrun: warning: --kill-cache not supported yet.\n");
 
 	/* Don't use the lookup cache? */
-	if (nocache_f == 1) {
-		fprintf(stderr, "xcrun: error: option not supported yet.\n");
-		exit(1);
-	}
+	if (nocache_f == 1)
+		fprintf(stderr, "xcrun: warning: --no-cache not supported yet.\n");
 
 	/* Turn on verbose mode? */
 	if (verbose_f == 1)
