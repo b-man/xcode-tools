@@ -401,7 +401,7 @@ static char *get_developer_path(void)
 
 	if ((fp = fopen(darwincfg_path, "r")) != NULL) {
 		fseek(fp, 0, SEEK_SET);
-		fread(devpath, (PATH_MAX), 1, fp);
+		fread(devpath, (PATH_MAX - 1), 1, fp);
 		value = devpath;
 		fclose(fp);
 	} else {
