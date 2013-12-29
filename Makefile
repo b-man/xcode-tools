@@ -15,6 +15,7 @@ install:
 	install -m 644 configs/$(TARGET)ToolchainSettings.info.ini $(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/info.ini
 	make -C xcrun/ PREFIX=$(PREFIX) install
 	make -C xcode-select/ PREFIX=$(PREFIX) install
+	install -m 755 scripts/xcrun-tool.sh $(PREFIX)/bin/xcrun-tool
 	xcode-select --switch $(DEVELOPER_DIR)
 
 .PHONY: clean
