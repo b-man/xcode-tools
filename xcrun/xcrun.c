@@ -48,12 +48,8 @@
 #define DARWINSDK_CFG ".darwinsdk.dat"
 #define XCRUN_DEFAULT_CFG "/etc/xcrun.ini"
 
-/* Deployment targets - used for tools such as ld */
-#ifdef USE_IOS_DEPLOYMENT_TARGET
-#define DEFAULT_DEPLOYMENT_TARGET "4.3.5"
-#else
-#define DEFAULT_DEPLOYMENT_TARGET "10.6.0"
-#endif
+/* Deployment targets - used by tools such as ld and clang */
+#define DEFAULT_DEPLOYMENT_TARGET "10.7.0"
 
 /* Toolchain configuration struct */
 typedef struct {
@@ -484,7 +480,8 @@ static char *get_sdk_path(const char *name)
 static int call_command(const char *cmd, int argc, char *argv[])
 {
 	int i;
-	char *envp[5] = { NULL };
+	char *envp[4] = { NULL };
+	char *deployment_target = NULL;
 
 	/*
 	 * Pass SDKROOT, PATH, and MACOSX_DEPLOYMENT_TARGET to the called program's environment.
@@ -496,16 +493,22 @@ static int call_command(const char *cmd, int argc, char *argv[])
 	envp[0] = (char *)malloc(PATH_MAX - 1);
 	envp[1] = (char *)malloc(PATH_MAX - 1);
 	envp[2] = (char *)malloc(255);
-	envp[3] = (char *)malloc(255);
 
 	sprintf(envp[0], "SDKROOT=%s", get_sdk_path(current_sdk));
-	sprintf(envp[1], "PATH=%s/usr/bin:%s", developer_dir, get_toolchain_path(current_toolchain));
-#ifdef USE_IOS_DEPLOYMENT_TARGET
-	sprintf(envp[2], "IOS_DEPLOYMENT_TARGET=%s", DEFAULT_DEPLOYMENT_TARGET);
-#else
-	sprintf(envp[3], "MACOSX_DEPLOYMENT_TARGET=%s", DEFAULT_DEPLOYMENT_TARGET);
-#endif
+	sprintf(envp[1], "PATH=%s/usr/bin:%s/usr/bin", developer_dir, get_toolchain_path(current_toolchain));
 
+	if ((deployment_target = getenv("IOS_DEPLOYMENT_TARGET")) != NULL) {
+		sprintf(envp[2], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
+		goto invoke_command;
+	} else if ((deployment_target = getenv("MACOSX_DEPLOYMENT_TARGET")) != NULL) {
+		sprintf(envp[2], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+		goto invoke_command;
+	}
+
+	/* fall back on default */
+	sprintf(envp[2], "MACOSX_DEPLOYMENT_TARGET=%s", DEFAULT_DEPLOYMENT_TARGET);
+
+invoke_command:
 	if (logging_mode == 1) {
 		logging_printf(stdout, "xcrun: info: invoking command:\n\t\"%s", cmd);
 		for (i = 1; i < argc; i++)
