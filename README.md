@@ -16,14 +16,20 @@ How to use these utilities
 xcode-select is a simple utility used to specify the location of a Developer folder.
 
 * What is a Developer folder? and why do we need to select one?
+---------------------------------------------------------------
+
   A Developer folder is a special folder that contains your SDK and it's associated Toolchain.
   By selecting a Developer folder, tools like ```xcrun``` will be able to locate resources found in the Developer folder.
 
 * How does this tool work?
+--------------------------
+
   When you select a Develoepr folder, it's absolute path will be written to a configuration file called ~/.xcdev.dat for other utilities to use.
   NOTE: It is not recommended that you modify this file directly!
 
 * How do I use this tool?
+-------------------------
+
   The functionality of xcode-select is almost identical to that of Apple's xcode-select utility.
 
   To select a Developer folder, simply run ```xcode-select --switch /path/to/DevFolder```.
@@ -39,6 +45,8 @@ xcode-select is a simple utility used to specify the location of a Developer fol
 xcrun is a simple utility used to locate and/or execute Developer, Toolchain, and SDK tools.
 
 * How does this tool work?
+--------------------------
+
   xcrun works by searching and optionally executing tools located within the Developer folder.
   When xcrun is invoked, it will search paths in the following order:
 
@@ -106,6 +114,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   NOTE: Ensure that only one of these variables are set at a time if they are used, otherwise things may break!
 
 * How do I use this tool?
+-------------------------
 
   Below is a list of all supported options:
 
