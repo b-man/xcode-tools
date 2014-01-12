@@ -42,9 +42,11 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   xcrun works by searching and optionally executing tools located within the Developer folder.
   When xcrun is invoked, it will search paths in the following order:
 
+	```
 	/<DevFolder>/usr/bin
 	/<DevFolder>/SDKs/<specified sdk>.sdk/usr/bin
 	/<DevFolder>/Toolchains/<associated toolchain>.toolchain/usr/bin
+	```
 	
   Where <DevFolder> represents the Developer folder, and <specified sdk> and <associated toolchain> represents the
   specified SDK and associated toolchain.
@@ -52,7 +54,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   If no SDK is specified while running xcrun, a default SDK which is specified in /etc/xcrun.ini will be used.
 
   When xcrun is told to use an sdk that is either specified by the user or specified by /etc/xcrun.ini, xcrun will read
-  a configuration file called /<DevFolder>/SDKs/<specified sdk>.sdk/info.ini which is used to resolve the toolchain name and the deployment target used.
+  a configuration file called ```/<DevFolder>/SDKs/<specified sdk>.sdk/info.ini``` which is used to resolve the toolchain name and the deployment target used.
 
   Below is an example of an info.ini file found in an SDK folder. For this example, our SDK name is DarwinARM, and the file name combined with it's
   absolute path will be /Developer/SDKs/DarwnARM.sdk/info.ini:
