@@ -65,7 +65,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   a configuration file called ```/<DevFolder>/SDKs/<specified sdk>.sdk/info.ini``` which is used to resolve the toolchain name and the deployment target used.
 
   Below is an example of an info.ini file found in an SDK folder. For this example, our SDK name is DarwinARM, and the file name combined with it's
-  absolute path will be /Developer/SDKs/DarwnARM.sdk/info.ini:
+  absolute path will be ```/Developer/SDKs/DarwnARM.sdk/info.ini```:
 
 	```
 	[SDK]				; this is an sdk configuration file
@@ -82,7 +82,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   parsing the Toolchain's info.ini, which is assumed to be located in ```/<DevPath>/Toolchains/<associated toolchain>.toolchain```.
 
   Below is an example of an info.ini file found in the Toolchain folder. For this example, our Toolchain name is DarwinARM, and the file name combined with it's
-  absolute path will be /Developer/Toolchains/DarwinARM.toolchain/info.ini:
+  absolute path will be ```/Developer/Toolchains/DarwinARM.toolchain/info.ini```:
 
 	```
 	[TOOLCHAIN]		; this is a toolchain configuration file
