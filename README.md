@@ -24,7 +24,7 @@ xcode-select is a simple utility used to specify the location of a Developer fol
 * How does this tool work?
 --------------------------
 
-  When you select a Develoepr folder, it's absolute path will be written to a configuration file called ~/.xcdev.dat for other utilities to use.
+  When you select a Developer folder, it's absolute path will be written to a configuration file called ~/.xcdev.dat for other utilities to use.
   NOTE: It is not recommended that you modify this file directly!
 
 * How do I use this tool?
@@ -63,7 +63,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 
   If no SDK is specified while running xcrun, a default SDK which is specified in /etc/xcrun.ini will be used.
 
-  When xcrun is told to use an sdk that is either specified by the user or specified by /etc/xcrun.ini, xcrun will read
+  When xcrun is told to use an sdk that is either specified by the user or specified by ```/etc/xcrun.ini```, xcrun will read
   a configuration file called ```/<DevFolder>/SDKs/<specified sdk>.sdk/info.ini``` which is used to resolve the toolchain name and the deployment target used.
 
   Below is an example of an info.ini file found in an SDK folder. For this example, our SDK name is DarwinARM, and the file name combined with it's
