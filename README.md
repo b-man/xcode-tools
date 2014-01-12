@@ -33,7 +33,9 @@ xcode-select is a simple utility used to specify the location of a Developer fol
   The functionality of xcode-select is almost identical to that of Apple's xcode-select utility.
 
   To select a Developer folder, simply run ```xcode-select --switch /path/to/DevFolder```.
+  
   To display the absolute path of a Developer folder, simply run ```xcode-select --print-path```.
+  
   Other options are ```--version``` to display version information and ```--help``` to display usage information.
 
   If you only wish to temporarily override the Developer folder path, set the ```DEVELOPER_DIR``` environment variable 
