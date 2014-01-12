@@ -162,7 +162,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 
 	```xcrun_log```		- calls xcrun in logging mode, like passing the --log option to xcrun
 
-  You may also create a symbolic link to xcrun that is the same name as a tool that may be found in the Developer folder or default SDK or Toolchain folders.
+  You may also create symbolic links to xcrun that mach the name of a tool that may be found in the Developer folder or default SDK or Toolchain folders.
   For example:
 
 	```
