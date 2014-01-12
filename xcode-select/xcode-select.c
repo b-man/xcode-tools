@@ -48,13 +48,13 @@
 static void usage(void)
 {
 
-	fprintf(stderr, "%s%s%s%s%s%s%s",
-			"Usage: xcode-select -print-path\n",
-			"   or: xcode-select -switch <darwinsdk_folder_path>\n",
-			"   or: xcode-select -version\n",
-			"Arguments:\n",
-			"   -print-path                     Prints the path of the current DarwinSDK folder\n",
-			"   -switch <xcode_folder_path>     Sets the path for the current DarwinSDK folder\n",
+	fprintf(stderr,
+			"Usage: xcode-select -print-path\n"
+			"   or: xcode-select -switch <darwinsdk_folder_path>\n"
+			"   or: xcode-select -version\n"
+			"Arguments:\n"
+			"   -print-path                     Prints the path of the current DarwinSDK folder\n"
+			"   -switch <xcode_folder_path>     Sets the path for the current DarwinSDK folder\n"
 			"   -version                        Prints xcode-select version information\n\n");
 
 	exit(1);

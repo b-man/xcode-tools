@@ -62,6 +62,7 @@ typedef struct {
 	const char *name;
 	const char *version;
 	const char *toolchain;
+	const char *deployment_target;
 } sdk_config;
 
 /* xcrun default configuration struct */
@@ -271,6 +272,8 @@ static int sdk_cfg_handler(void *user, const char *section, const char *name, co
 		config->version = strdup(value);
 	else if (MATCH_INI_STON("SDK", "toolchain"))
 		config->toolchain = strdup(value);
+	else if (MATCH_INI_STON("SDK", "deployment_target"))
+		config->deployment_target = strdup(value);
 	else
 		return 0;
 
@@ -505,8 +508,13 @@ static int call_command(const char *cmd, int argc, char *argv[])
 		goto invoke_command;
 	}
 
-	/* fall back on default */
-	sprintf(envp[2], "MACOSX_DEPLOYMENT_TARGET=%s", DEFAULT_DEPLOYMENT_TARGET);
+	/* Use the deployment target info that is provided by the SDK. */
+	if ((deployment_target = strdup(get_sdk_info(get_sdk_path(current_sdk)).deployment_target)) != NULL)
+		sprintf(envp[2], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+	else {
+		printf("xcrun: error: failed to retrieve deployment target information for %s.sdk.\n", current_sdk);
+		exit(1);
+	}
 
 invoke_command:
 	if (logging_mode == 1) {
