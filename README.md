@@ -177,6 +177,6 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 	```
 
   NOTE: If this is your first time using this version of xcrun and you run into an error starting with ```xcrun: error: unable to validate path```,
-  ensure that xcrun is searching the developer folder by running ```xcode-select --switch <DevPath>```, where <DevPath> is the absolute path to your
+  ensure that xcrun is searching the developer folder by running ```xcode-select --switch <DevPath>```, where ```<DevPath>``` is the absolute path to your
   developer folder. If you still run into problems, open an issue report and maybe I can help you. :)
 
