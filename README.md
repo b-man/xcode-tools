@@ -140,6 +140,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   xcrun also supports multicall behavior. Below is a small list of symbolic links to xcrun that exhibit special behavior:
 
 	```xcrun_verbose```	- calls xcrun in verbose mode, like passing the --verbose option to xcrun
+
 	```xcrun_logging```	- calls xcrun in logging mode, like passing the --log option to xcrun
 
   You may also create a symbolic link to xcrun that is the same name as a tool that may be found in the Developer folder or default SDK or Toolchain folders.
