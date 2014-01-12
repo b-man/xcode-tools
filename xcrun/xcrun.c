@@ -45,7 +45,7 @@
 
 /* General stuff */
 #define TOOL_VERSION "0.0.1"
-#define DARWINSDK_CFG ".darwinsdk.dat"
+#define DARWINSDK_CFG ".xcdev.dat"
 #define XCRUN_DEFAULT_CFG "/etc/xcrun.ini"
 
 /* Deployment targets - used by tools such as ld and clang */

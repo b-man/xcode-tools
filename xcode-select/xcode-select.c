@@ -39,7 +39,7 @@
 #include <sys/types.h>
 
 #define TOOL_VERSION "0.0.1"
-#define DARWINSDK_CFG ".darwinsdk.dat"
+#define DARWINSDK_CFG ".xcdev.dat"
 
 /**
  * @func usage -- Print helpful information about this tool.
