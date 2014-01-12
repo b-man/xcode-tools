@@ -58,7 +58,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 	/<DevFolder>/Toolchains/<associated toolchain>.toolchain/usr/bin
 	```
 	
-  Where <DevFolder> represents the Developer folder, and <specified sdk> and <associated toolchain> represents the
+  Where ```<DevFolder>``` represents the Developer folder, and ```<specified sdk>``` and ```<associated toolchain>``` represents the
   specified SDK and associated toolchain.
 
   If no SDK is specified while running xcrun, a default SDK which is specified in /etc/xcrun.ini will be used.
