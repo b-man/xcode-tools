@@ -10,7 +10,7 @@ Currently implemented utilities:
 How to use these utilities
 --------------------------
 
-[xcode-select]:
+xcode-select:
 ---------------
 
 xcode-select is a simple utility used to specify the location of a Developer folder.
@@ -39,7 +39,7 @@ xcode-select is a simple utility used to specify the location of a Developer fol
   If you only wish to temporarily override the Developer folder path, set the ```DEVELOPER_DIR``` environment variable 
   in your shell to point to the absolute path of your desired Developer folder.
 
-[xcrun]:
+xcrun:
 --------
 
 xcrun is a simple utility used to locate and/or execute Developer, Toolchain, and SDK tools.
