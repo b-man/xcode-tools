@@ -106,11 +106,13 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 
   Once xcrun has located a tool to be executed, it will pass the following environment variables to the called tool:
 
-	```PATH```				- This contains all resolved paths for the Developer folder, the SDK, and the Toolchain.
+	```
+	PATH				- This contains all resolved paths for the Developer folder, the SDK, and the Toolchain.
 	
-	```IOS_DEPLOYMENT_TARGET```		- If MACOSX_DEPLOYMENT_TARGET isn't specified and this is, this will be passed to the called tool.
+	IOS_DEPLOYMENT_TARGET		- If MACOSX_DEPLOYMENT_TARGET isn't specified and this is, this will be passed to the called tool.
 	
-	```MACOSX_DEPLOYMENT_TARGET```	- If IOS_DEPLOYMENT_TARGET isn't specified and this is, this will be passed to the called tool.
+	MACOSX_DEPLOYMENT_TARGET	- If IOS_DEPLOYMENT_TARGET isn't specified and this is, this will be passed to the called tool.
+	```
 
   If ```IOS_DEPLOYMENT_TARGET``` or ```MACOSX_DEPLOYMENT_TARGET``` are set in your shell, the deployment target specified by the SDK will be overridden.
   NOTE: Ensure that only one of these variables are set at a time if they are used, otherwise things may break!
