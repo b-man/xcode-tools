@@ -24,7 +24,7 @@ xcode-select is a simple utility used to specify the location of a Developer fol
 * How does this tool work?
 --------------------------
 
-  When you select a Developer folder, it's absolute path will be written to a configuration file called ~/.xcdev.dat for other utilities to use.
+  When you select a Developer folder, it's absolute path will be written to a configuration file called ```~/.xcdev.dat``` for other utilities to use.
   NOTE: It is not recommended that you modify this file directly!
 
 * How do I use this tool?
@@ -61,7 +61,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   Where ```<DevFolder>``` represents the Developer folder, and ```<specified sdk>``` and ```<associated toolchain>``` represents the
   specified SDK and associated toolchain.
 
-  If no SDK is specified while running xcrun, a default SDK which is specified in /etc/xcrun.ini will be used.
+  If no SDK is specified while running xcrun, a default SDK which is specified in ```/etc/xcrun.ini``` will be used.
 
   When xcrun is told to use an sdk that is either specified by the user or specified by ```/etc/xcrun.ini```, xcrun will read
   a configuration file called ```/<DevFolder>/SDKs/<specified sdk>.sdk/info.ini``` which is used to resolve the toolchain name and the deployment target used.
@@ -155,6 +155,13 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   * Running the Toolcain tool ```clang``` with the DarwinARM Toolchain:
 
 	```xcrun -toolchain DarwinARM clang -arch armv7 -x c -g -O2 hello.c -o hello -lSystem```
+	
+  * Locating the Toolchain tool ```lipo``` with the default SDK:
+	```xcrun -find lipo```
+
+  * Locating the Toolchain tool ```lipo``` with the DarwinARM SDK:
+  	```xcrun -sdk DarwinARM -find lipo```
+
 
   xcrun also supports multicall behavior. Below is a small list of symbolic links to xcrun that exhibit special behavior:
 
@@ -162,7 +169,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 
 	```xcrun_log```		- calls xcrun in logging mode, like passing the --log option to xcrun
 
-  You may also create symbolic links to xcrun that mach the name of a tool that may be found in the Developer folder or default SDK or Toolchain folders.
+  You may also create symbolic links to xcrun that match the name of a tool that may be found in the Developer folder or default SDK or Toolchain folders.
   For example:
 
 	```
