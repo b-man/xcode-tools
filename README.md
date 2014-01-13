@@ -157,9 +157,11 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 	```xcrun -toolchain DarwinARM clang -arch armv7 -x c -g -O2 hello.c -o hello -lSystem```
 	
   * Locating the Toolchain tool ```lipo``` with the default SDK:
+
 	```xcrun -find lipo```
 
   * Locating the Toolchain tool ```lipo``` with the DarwinARM SDK:
+
   	```xcrun -sdk DarwinARM -find lipo```
 
 
