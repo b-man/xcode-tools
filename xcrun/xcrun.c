@@ -548,7 +548,7 @@ static char *search_command(const char *name, char *dirs)
 		sprintf(cmd, "%s/%s", absl_path, name);
 
 		/* Does it exist? Is it an executable? */
-		if (access(cmd, X_OK) == 0) {
+		if (access(cmd, (X_OK | F_OK)) != (-1)) {
 			verbose_printf(stdout, "xcrun: info: found command's absolute path: \'%s\'\n", cmd);
 			break;
 		}
@@ -574,7 +574,7 @@ static int request_command(const char *name, int argc, char *argv[])
 	char *toolchain_env = NULL;	/* used for passing PATH in call_command */
 	char search_string[PATH_MAX * 1024];	/* our search string */
 
-	/* 
+	/*
 	 * If xcrun was called in a multicall state, we still want to specify current_sdk for SDKROOT and
 	 * current_toolchain for PATH.
 	 */
@@ -634,14 +634,16 @@ static int request_command(const char *name, int argc, char *argv[])
 do_search:
 	if ((cmd = search_command(name, search_string)) != NULL) {
 			if (finding_mode == 1) {
-				fprintf(stdout, "%s\n", cmd);
-				free(cmd);
-				return 0;
+				if (access(cmd, (F_OK | X_OK)) != (-1)) {
+					fprintf(stdout, "%s\n", cmd);
+					free(cmd);
+					return 0;
+				} else
+					return -1;
 			} else {
 				call_command(cmd, argc, argv);
 				/* NOREACH */
 				fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
-				free(cmd);
 				return -1;
 			}
 	}
@@ -888,7 +890,7 @@ static int xcrun_main(int argc, char *argv[])
 		if (request_command(tool_called, 0, NULL) != -1)
 			retval = 0;
 		else
-			fprintf(stderr, "xcrun: error: unable to locate command \'%s\'.\n", tool_called);
+			fprintf(stderr, "xcrun: error: unable to locate command \'%s\' (errno=%s)\n", tool_called, strerror(errno));
 			exit(1);
 	}
 
