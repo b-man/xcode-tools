@@ -44,12 +44,9 @@
 #include "ini.h"
 
 /* General stuff */
-#define TOOL_VERSION "0.0.1"
+#define TOOL_VERSION "1.0.0"
 #define DARWINSDK_CFG ".xcdev.dat"
 #define XCRUN_DEFAULT_CFG "/etc/xcrun.ini"
-
-/* Deployment targets - used by tools such as ld and clang */
-#define DEFAULT_DEPLOYMENT_TARGET "10.7.0"
 
 /* Toolchain configuration struct */
 typedef struct {

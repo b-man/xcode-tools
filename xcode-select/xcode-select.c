@@ -38,7 +38,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define TOOL_VERSION "0.0.1"
+#define TOOL_VERSION "1.0.0"
 #define DARWINSDK_CFG ".xcdev.dat"
 
 /**
