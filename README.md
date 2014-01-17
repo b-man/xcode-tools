@@ -107,6 +107,8 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   Once xcrun has located a tool to be executed, it will pass the following environment variables to the called tool:
 
 	```
+	SDKROOT				- This points to the specified SDK folder (e.g. <DevFolder>/SDKs/<specified sdk>.sdk).
+	
 	PATH				- This contains all resolved paths for the Developer folder, the SDK, and the Toolchain.
 	
 	IOS_DEPLOYMENT_TARGET		- If MACOSX_DEPLOYMENT_TARGET isn't specified and this is, this will be passed to the called tool.
