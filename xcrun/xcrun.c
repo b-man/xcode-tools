@@ -76,13 +76,13 @@ static int finding_mode = 0;
 /* Behavior mode flags */
 static int explicit_sdk_mode = 0;
 static int explicit_toolchain_mode = 0;
+static int ios_deployment_target_set = 0;
+static int macosx_deployment_target_set = 0;
 
 /* Runtime info */
 static char *developer_dir = NULL;
 static char *current_sdk = NULL;
 static char *current_toolchain = NULL;
-static int ios_deployment_target_set = 0;
-static int macosx_deployment_target_set = 0;
 
 /* Alternate behavior flags */
 static char *alternate_sdk_path = NULL;
