@@ -526,7 +526,7 @@ static int call_command(const char *cmd, int argc, char *argv[])
 			goto invoke_command;
 		}
 	} else {
-		printf("xcrun: error: failed to retrieve deployment target information for %s.sdk.\n", current_sdk);
+		fprintf(stderr, "xcrun: error: failed to retrieve deployment target information for %s.sdk.\n", current_sdk);
 		exit(1);
 	}
 
