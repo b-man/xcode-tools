@@ -74,8 +74,9 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 	name = DarwinARM		; this is the name of our SDK. This MUST match the folder name that is postfixed with '.sdk'.
 	version = 1.0.0			; this is the version number for the SDK.
 	toolchain = DarwinARM		; this is the specified toolchain name to be used with the SDK.
-	deployment_target = 10.7	; this is the deployment target to be used with the SDK.
-					; (currently only supports OSX versioning, but can be overridden as explained later.
+	macosx_deployment_target = 10.7	; this is the deployment target to be used with the SDK.
+					; you can rename this variable to ios_deployment_target and set it to an appropriate iOS version
+					; (e.g.: ios_deployment_target = 4.3.5) if you are building iOS software.
 	```
 
   NOTE: All information written into info.ini is case-sensitive (except comments), so take extra care when writing your own.

@@ -94,15 +94,15 @@ int ini_parse_file(FILE* file,
 #if INI_USE_STACK
     char line[INI_MAX_LINE];
 #else
-    char* line;
+    char* line = NULL;
 #endif
     char section[MAX_SECTION] = "";
     char prev_name[MAX_NAME] = "";
 
-    char* start;
-    char* end;
-    char* name;
-    char* value;
+    char* start = NULL;
+    char* end = NULL;
+    char* name = NULL;
+    char* value = NULL;
     int lineno = 0;
     int error = 0;
 

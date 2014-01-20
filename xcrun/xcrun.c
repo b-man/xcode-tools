@@ -81,6 +81,8 @@ static int explicit_toolchain_mode = 0;
 static char *developer_dir = NULL;
 static char *current_sdk = NULL;
 static char *current_toolchain = NULL;
+static int ios_deployment_target_set = 0;
+static int macosx_deployment_target_set = 0;
 
 /* Alternate behavior flags */
 static char *alternate_sdk_path = NULL;
@@ -269,9 +271,15 @@ static int sdk_cfg_handler(void *user, const char *section, const char *name, co
 		config->version = strdup(value);
 	else if (MATCH_INI_STON("SDK", "toolchain"))
 		config->toolchain = strdup(value);
-	else if (MATCH_INI_STON("SDK", "deployment_target"))
+	else if (MATCH_INI_STON("SDK", "ios_deployment_target")) {
+		ios_deployment_target_set = 1;
+		macosx_deployment_target_set = 0;
 		config->deployment_target = strdup(value);
-	else
+	} else if (MATCH_INI_STON("SDK", "macosx_deployment_target")) {
+		ios_deployment_target_set = 0;
+		macosx_deployment_target_set = 1;
+		config->deployment_target = strdup(value);
+	} else
 		return 0;
 
 	return 1;
@@ -506,9 +514,16 @@ static int call_command(const char *cmd, int argc, char *argv[])
 	}
 
 	/* Use the deployment target info that is provided by the SDK. */
-	if ((deployment_target = strdup(get_sdk_info(get_sdk_path(current_sdk)).deployment_target)) != NULL)
-		sprintf(envp[2], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
-	else {
+	if ((deployment_target = strdup(get_sdk_info(get_sdk_path(current_sdk)).deployment_target)) != NULL) {
+		if (macosx_deployment_target_set == 1) {
+			sprintf(envp[2], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+			goto invoke_command;
+		}
+		if (ios_deployment_target_set == 1) {
+			sprintf(envp[2], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
+			goto invoke_command;
+		}
+	} else {
 		printf("xcrun: error: failed to retrieve deployment target information for %s.sdk.\n", current_sdk);
 		exit(1);
 	}
@@ -548,7 +563,7 @@ static char *search_command(const char *name, char *dirs)
 		sprintf(cmd, "%s/%s", absl_path, name);
 
 		/* Does it exist? Is it an executable? */
-		if (access(cmd, (X_OK | F_OK)) != (-1)) {
+		if (access(cmd, (F_OK | X_OK)) != (-1)) {
 			verbose_printf(stdout, "xcrun: info: found command's absolute path: \'%s\'\n", cmd);
 			break;
 		}
@@ -633,19 +648,19 @@ static int request_command(const char *name, int argc, char *argv[])
 	/* Search each path entry in search_string until we find our program. */
 do_search:
 	if ((cmd = search_command(name, search_string)) != NULL) {
-			if (finding_mode == 1) {
-				if (access(cmd, (F_OK | X_OK)) != (-1)) {
-					fprintf(stdout, "%s\n", cmd);
-					free(cmd);
-					return 0;
-				} else
-					return -1;
-			} else {
-				call_command(cmd, argc, argv);
-				/* NOREACH */
-				fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
+		if (finding_mode == 1) {
+			if (access(cmd, (F_OK | X_OK)) != (-1)) {
+				fprintf(stdout, "%s\n", cmd);
+				free(cmd);
+				return 0;
+			} else
 				return -1;
-			}
+		} else {
+			call_command(cmd, argc, argv);
+			/* NOREACH */
+			fprintf(stderr, "xcrun: error: can't exec \'%s\' (errno=%s)\n", cmd, strerror(errno));
+			return -1;
+		}
 	}
 
 	/* We have searched everywhere, but we haven't found our program. State why. */
