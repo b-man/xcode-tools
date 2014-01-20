@@ -187,8 +187,10 @@ static void usage(void)
 		"  -l, --log                   show commands to be executed (with --run)\n"
 		"  -f, --find                  only find and print the tool path\n"
 		"  -r, --run                   find and execute the tool (the default behavior)\n"
+#if 0
 		"  -n, --no-cache              do not use the lookup cache (not implemented yet - does nothing)\n"
 		"  -k, --kill-cache            invalidate all existing cache entries (not implemented yet - does nothing)\n"
+#endif
 		"  --show-sdk-path             show selected SDK install path\n"
 		"  --show-sdk-version          show selected SDK version\n"
 		"  --show-sdk-platform-path    show selected SDK platform path\n"
