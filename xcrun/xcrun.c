@@ -906,17 +906,20 @@ static int xcrun_main(int argc, char *argv[])
 		finding_mode = 1;
 		if (request_command(tool_called, 0, NULL) != -1)
 			retval = 0;
-		else
+		else {
 			fprintf(stderr, "xcrun: error: unable to locate command \'%s\' (errno=%s)\n", tool_called, strerror(errno));
 			exit(1);
+		}
 	}
 
 	/* Search and execute program. (default behavior) */
-	if (request_command(tool_called, (argc - argc_offset),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset)))) != -1) {
-		/* NOREACH */
-		retval = -1;
-	} else {
-		fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", tool_called);
+	if (find_f != 1) {
+		if (request_command(tool_called, (argc - argc_offset),  (argv += ((argc - argc_offset) - (argc - argc_offset) + (argc_offset)))) != -1)
+			retval = -1; /* NOREACH */
+		else {
+			fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", tool_called);
+			exit(1);
+		}
 	}
 
 	return retval;
