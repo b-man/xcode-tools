@@ -960,7 +960,7 @@ int main(int argc, char *argv[])
 	/* Check if we are being treated as a multi-call binary. */
 	call_state = get_multicall_state(this_tool, multicall_tool_names, 4);
 
-	/* Execute based on the state that we were callen in. */
+	/* Execute based on the state that we were called in. */
 	switch (call_state) {
 		case 1: /* xcrun */
 			retval = xcrun_main(argc, argv);
