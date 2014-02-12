@@ -983,6 +983,7 @@ int main(int argc, char *argv[])
 				retval = -1; /* NOREACH */
 			else {
 				fprintf(stderr, "xcrun: error: failed to execute command \'%s\'. aborting.\n", this_tool);
+				exit(1);
 			}
 			break;
 	}
