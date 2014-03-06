@@ -1,4 +1,4 @@
-PREFIX = /usr
+PREFIX ?= /usr
 
 CC = clang
 CFLAGS = -Wall -Werror -O2
@@ -16,8 +16,8 @@ all: $(OBJS)
 	$(CC) $(OBJS) -o $(PROG)
 
 install: $(PROG)
-	install -d $(PREFIX)/bin
-	install -s -m 755 $(PROG) $(PREFIX)/bin/$(PROG)
+	install -d $(DSTROOT)/$(PREFIX)/bin
+	install -s -m 755 $(PROG) $(DSTROOT)/$(PREFIX)/bin/$(PROG)
 
 .PHONY: clean
 clean:
