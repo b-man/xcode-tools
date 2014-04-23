@@ -45,7 +45,7 @@
 
 /* General stuff */
 #define TOOL_VERSION "1.0.0"
-#define DARWINSDK_CFG ".xcdev.dat"
+#define SDK_CFG ".xcdev.dat"
 #define XCRUN_DEFAULT_CFG "/etc/xcrun.ini"
 
 /* Toolchain configuration struct */
@@ -383,7 +383,7 @@ static char *get_developer_path(void)
 	FILE *fp = NULL;
 	char devpath[PATH_MAX - 1];
 	char *pathtocfg = NULL;
-	char *darwincfg_path = NULL;
+	char *cfg_path = NULL;
 	char *value = NULL;
 
 	verbose_printf(stdout, "xcrun: info: attempting to retrieve developer path from DEVELOPER_DIR...\n");
@@ -401,11 +401,11 @@ static char *get_developer_path(void)
 		return NULL;
 	}
 
-	darwincfg_path = (char *)malloc((strlen(pathtocfg) + sizeof(DARWINSDK_CFG)));
+	cfg_path = (char *)malloc((strlen(pathtocfg) + sizeof(SDK_CFG)));
 
-	sprintf(darwincfg_path, "%s/%s", pathtocfg, DARWINSDK_CFG);
+	sprintf(cfg_path, "%s/%s", pathtocfg, SDK_CFG);
 
-	if ((fp = fopen(darwincfg_path, "r")) != NULL) {
+	if ((fp = fopen(cfg_path, "r")) != NULL) {
 		fseek(fp, 0, SEEK_SET);
 		fread(devpath, (PATH_MAX - 1), 1, fp);
 		value = devpath;
@@ -417,7 +417,7 @@ static char *get_developer_path(void)
 
 	verbose_printf(stdout, "xcrun: info: using developer path \'%s\' from configuration cache.\n", value);
 
-	free(darwincfg_path);
+	free(cfg_path);
 
 	return value;
 }
