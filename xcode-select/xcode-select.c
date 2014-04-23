@@ -39,7 +39,7 @@
 #include <sys/types.h>
 
 #define TOOL_VERSION "1.0.0"
-#define DARWINSDK_CFG ".xcdev.dat"
+#define SDK_CFG ".xcdev.dat"
 
 /**
  * @func usage -- Print helpful information about this tool.
@@ -50,11 +50,11 @@ static void usage(void)
 
 	fprintf(stderr,
 			"Usage: xcode-select -print-path\n"
-			"   or: xcode-select -switch <darwinsdk_folder_path>\n"
+			"   or: xcode-select -switch <sdk_folder_path>\n"
 			"   or: xcode-select -version\n"
 			"Arguments:\n"
-			"   -print-path                     Prints the path of the current DarwinSDK folder\n"
-			"   -switch <xcode_folder_path>     Sets the path for the current DarwinSDK folder\n"
+			"   -print-path                     Prints the path of the current SDK folder\n"
+			"   -switch <xcode_folder_path>     Sets the path for the current SDK folder\n"
 			"   -version                        Prints xcode-select version information\n\n");
 
 	exit(1);
@@ -101,7 +101,7 @@ static char *get_developer_path(void)
 	FILE *fp = NULL;
 	char devpath[PATH_MAX - 1];
 	char *pathtocfg = NULL;
-	char *darwincfg_path = NULL;
+	char *cfg_path = NULL;
 	char *value = NULL;
 
 	if ((value = getenv("DEVELOPER_DIR")) != NULL)
@@ -114,12 +114,12 @@ static char *get_developer_path(void)
 		return NULL;
 	}
 
-	darwincfg_path = (char *)malloc((strlen(pathtocfg) + sizeof(DARWINSDK_CFG)));
+	cfg_path = (char *)malloc((strlen(pathtocfg) + sizeof(SDK_CFG)));
 
 	strcat(pathtocfg, "/");
-	strcat(darwincfg_path, strcat(pathtocfg, DARWINSDK_CFG));
+	strcat(cfg_path, strcat(pathtocfg, SDK_CFG));
 
-	if ((fp = fopen(darwincfg_path, "r")) != NULL) {
+	if ((fp = fopen(cfg_path, "r")) != NULL) {
 		fseek(fp, SEEK_SET, 0);
 		fread(devpath, (PATH_MAX - 1), 1, fp);
 		value = devpath;
@@ -129,7 +129,7 @@ static char *get_developer_path(void)
 		return NULL;
 	}
 
-	free(darwincfg_path);
+	free(cfg_path);
 
 	return value;
 }
@@ -143,19 +143,19 @@ static int set_developer_path(const char *path)
 {
 	FILE *fp = NULL;
 	char *pathtocfg = NULL;
-	char *darwincfg_path = NULL;
+	char *cfg_path = NULL;
 
 	if ((pathtocfg = getenv("HOME")) == NULL) {
 		fprintf(stderr, "xcode-select: error: failed to read HOME variable.\n");
 		return -1;
 	}
 
-        darwincfg_path = (char *)malloc((strlen(pathtocfg) + sizeof(DARWINSDK_CFG)));
+        cfg_path = (char *)malloc((strlen(pathtocfg) + sizeof(SDK_CFG)));
 
         strcat(pathtocfg, "/");
-	strcat(darwincfg_path, strcat(pathtocfg, DARWINSDK_CFG));
+	strcat(cfg_path, strcat(pathtocfg, SDK_CFG));
 
-	if ((fp = fopen(darwincfg_path, "w+")) != NULL) {
+	if ((fp = fopen(cfg_path, "w+")) != NULL) {
 		fwrite(path, 1, strlen(path), fp);
 		fclose(fp);
 	} else {
@@ -163,7 +163,7 @@ static int set_developer_path(const char *path)
 		return -1;
 	}
 
-	free(darwincfg_path);
+	free(cfg_path);
 
 	return 0;
 }
