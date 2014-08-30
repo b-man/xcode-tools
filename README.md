@@ -126,18 +126,18 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   Below is a list of all supported options:
 
   ```
-  -h, --help                  show this help message and exit
-  --version                   show the xcrun version
-  -v, --verbose               show verbose logging output
-  --sdk <sdk name>            find the tool for the given SDK name
-  --toolchain <name>          find the tool for the given toolchain
-  -l, --log                   show commands to be executed (with --run)
-  -f, --find                  only find and print the tool path
-  -r, --run                   find and execute the tool (the default behavior)
-  --show-sdk-path             show selected SDK install path
-  --show-sdk-version          show selected SDK version
-  --show-sdk-platform-path    show selected SDK platform path
-  --show-sdk-platform-version show selected SDK platform version
+  -h, --help                   show this help message and exit
+  --version                    show the xcrun version
+  -v, --verbose                show verbose logging output
+  --sdk <sdk name>             find the tool for the given SDK name
+  --toolchain <name>           find the tool for the given toolchain
+  -l, --log                    show commands to be executed (with --run)
+  -f, --find                   only find and print the tool path
+  -r, --run                    find and execute the tool (the default behavior)
+  --show-sdk-path              show selected SDK install path
+  --show-sdk-version           show selected SDK version
+  --show-sdk-toolchain-path    show selected SDK toolchain path
+  --show-sdk-toolchain-version show selected SDK toolchain version
   ```
 
   Examples:

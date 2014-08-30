@@ -175,26 +175,25 @@ static void usage(void)
 		"Find and execute the named command line tool from the active developer directory.\n"
 		"\n"
 		"The active developer directory can be set using `xcode-select`, or via the\n"
-		"DEVELOPER_DIR environment variable. See the xcrun and xcode-select manual\n"
-		"pages for more information.\n"
+		"DEVELOPER_DIR environment variable.\n"
 		"\n"
 		"Options:\n"
-		"  -h, --help                  show this help message and exit\n"
-		"  --version                   show the xcrun version\n"
-		"  -v, --verbose               show verbose logging output\n"
-		"  --sdk <sdk name>            find the tool for the given SDK name\n"
-		"  --toolchain <name>          find the tool for the given toolchain\n"
-		"  -l, --log                   show commands to be executed (with --run)\n"
-		"  -f, --find                  only find and print the tool path\n"
-		"  -r, --run                   find and execute the tool (the default behavior)\n"
+		"  -h, --help                   show this help message and exit\n"
+		"  --version                    show the xcrun version\n"
+		"  -v, --verbose                show verbose logging output\n"
+		"  --sdk <sdk name>             find the tool for the given SDK name\n"
+		"  --toolchain <name>           find the tool for the given toolchain\n"
+		"  -l, --log                    show commands to be executed (with --run)\n"
+		"  -f, --find                   only find and print the tool path\n"
+		"  -r, --run                    find and execute the tool (the default behavior)\n"
 #if 0
-		"  -n, --no-cache              do not use the lookup cache (not implemented yet - does nothing)\n"
-		"  -k, --kill-cache            invalidate all existing cache entries (not implemented yet - does nothing)\n"
+		"  -n, --no-cache               do not use the lookup cache (not implemented yet - does nothing)\n"
+		"  -k, --kill-cache             invalidate all existing cache entries (not implemented yet - does nothing)\n"
 #endif
-		"  --show-sdk-path             show selected SDK install path\n"
-		"  --show-sdk-version          show selected SDK version\n"
-		"  --show-sdk-platform-path    show selected SDK platform path\n"
-		"  --show-sdk-platform-version show selected SDK platform version\n\n"
+		"  --show-sdk-path              show selected SDK install path\n"
+		"  --show-sdk-version           show selected SDK version\n"
+		"  --show-sdk-toolchain-path    show selected SDK toolchain path\n"
+		"  --show-sdk-toolchain-version show selected SDK toolchain version\n\n"
 		, progname);
 
 	exit(0);
@@ -239,7 +238,6 @@ static int validate_directory_path(const char *dir)
  * @arg value - ini variable value (see ini.h)
  * @return: 1 on success, 0 on failure
  */
-#if 0
 static int toolchain_cfg_handler(void *user, const char *section, const char *name, const char *value)
 {
 	toolchain_config *config = (toolchain_config *)user;
@@ -253,7 +251,6 @@ static int toolchain_cfg_handler(void *user, const char *section, const char *na
 
 	return 1;
 }
-#endif
 
 /**
  * @func sdk_cfg_handler -- handler used to process sdk info.ini contents
@@ -314,7 +311,6 @@ static int default_cfg_handler(void *user, const char *section, const char *name
  * @arg path - path to toolchain's info.ini
  * @return: struct containing toolchain config info
  */
-#if 0
 static toolchain_config get_toolchain_info(const char *path)
 {
 	toolchain_config config;
@@ -332,7 +328,6 @@ static toolchain_config get_toolchain_info(const char *path)
 		exit(1);
 	}
 }
-#endif
 
 /**
  * @func get_sdk_info -- fetch config info from a toolchain's info.ini
@@ -707,8 +702,8 @@ static int xcrun_main(int argc, char *argv[])
 		{ "kill-cache", no_argument, 0, 'k' },
 		{ "show-sdk-path", no_argument, &ssdkp_f, 1 },
 		{ "show-sdk-version", no_argument, &ssdkv_f, 1 },
-		{ "show-sdk-platform-path", no_argument, &ssdkpp_f, 1 },
-		{ "show-sdk-platform-version", no_argument, &ssdkpv_f, 1 },
+		{ "show-sdk-toolchain-path", no_argument, &ssdkpp_f, 1 },
+		{ "show-sdk-toolchain-version", no_argument, &ssdkpv_f, 1 },
 		{ NULL, 0, 0, 0 }
 	};
 
@@ -795,9 +790,9 @@ static int xcrun_main(int argc, char *argv[])
 							break;
 						case 11: /* --show-sdk-version */
 							break;
-						case 12: /* --show-sdk-platform-path */
+						case 12: /* --show-sdk-toolchain-path */
 							break;
-						case 13: /* --show-sdk-platform-version */
+						case 13: /* --show-sdk-toolchain-version */
 							break;
 					}
 					break;
@@ -867,25 +862,25 @@ static int xcrun_main(int argc, char *argv[])
 		exit(0);
 	}
 
-	/* Show SDK platform path? */
+	/* Show SDK toolchain path? */
 	if (ssdkpp_f == 1) {
-		printf("%s\n", developer_dir);
+		printf("%s\n", get_toolchain_path(current_toolchain));
 		exit(0);
 	}
 
-	/* Show SDK platform version? */
+	/* Show SDK toolchain version? */
 	if (ssdkpv_f == 1) {
-		printf("%s SDK Platform version %s\n", get_sdk_info(get_sdk_path(current_sdk)).name, get_sdk_info(get_sdk_path(current_sdk)).version);
+		printf("%s SDK Toolchain version %s (%s)\n", get_sdk_info(get_sdk_path(current_sdk)).name, get_toolchain_info(get_toolchain_path(current_toolchain)).version, get_toolchain_info(get_toolchain_path(current_toolchain)).name);
 		exit(0);
 	}
 
 	/* Clear the lookup cache? */
 	if (killcache_f == 1)
-		fprintf(stderr, "xcrun: warning: --kill-cache not supported yet.\n");
+		fprintf(stderr, "xcrun: warning: --kill-cache not supported.\n");
 
 	/* Don't use the lookup cache? */
 	if (nocache_f == 1)
-		fprintf(stderr, "xcrun: warning: --no-cache not supported yet.\n");
+		fprintf(stderr, "xcrun: warning: --no-cache not supported.\n");
 
 	/* Turn on verbose mode? */
 	if (verbose_f == 1)
