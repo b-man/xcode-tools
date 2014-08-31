@@ -485,39 +485,43 @@ static char *get_sdk_path(const char *name)
 static int call_command(const char *cmd, int argc, char *argv[])
 {
 	int i;
-	char *envp[4] = { NULL };
+	char *envp[5] = { NULL };
 	char *deployment_target = NULL;
 
 	/*
-	 * Pass SDKROOT, PATH, and MACOSX_DEPLOYMENT_TARGET to the called program's environment.
-	 * SDKROOT is used for when programs such as clang need to know the location of the sdk.
-	 * PATH is used for when programs such as clang need to call on another program (such as the linker).
-	 * MACOSX_DEPLOYMENT_TARGET is used for tools like ld that need to set the minimum compatibility
-	 * version number for a linked binary
+	 * Pass SDKROOT, PATH, LD_LIBRARY_PATH, and MACOSX_DEPLOYMENT_TARGET to the called program's environment.
+	 *
+	 * > SDKROOT is used for when programs such as clang need to know the location of the sdk.
+	 * > PATH is used for when programs such as clang need to call on another program (such as the linker).
+	 * > LD_LIBRARY_PATH is used for when tools needs to access libraries that are specific to the toolchain.
+	 * > {MACOSX|IOS}_DEPLOYMENT_TARGET is used for tools like ld that need to set the minimum compatibility
+	 *   version number for a linked binary.
 	 */
 	envp[0] = (char *)malloc(PATH_MAX - 1);
 	envp[1] = (char *)malloc(PATH_MAX - 1);
-	envp[2] = (char *)malloc(255);
+	envp[2] = (char *)malloc(PATH_MAX - 1);
+	envp[3] = (char *)malloc(255);
 
 	sprintf(envp[0], "SDKROOT=%s", get_sdk_path(current_sdk));
 	sprintf(envp[1], "PATH=%s/usr/bin:%s/usr/bin", developer_dir, get_toolchain_path(current_toolchain));
+	sprintf(envp[2], "LD_LIBRARY_PATH=%s/usr/lib", get_toolchain_path(current_toolchain));
 
 	if ((deployment_target = getenv("IOS_DEPLOYMENT_TARGET")) != NULL) {
-		sprintf(envp[2], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
+		sprintf(envp[3], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
 		goto invoke_command;
 	} else if ((deployment_target = getenv("MACOSX_DEPLOYMENT_TARGET")) != NULL) {
-		sprintf(envp[2], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+		sprintf(envp[3], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
 		goto invoke_command;
 	}
 
 	/* Use the deployment target info that is provided by the SDK. */
 	if ((deployment_target = strdup(get_sdk_info(get_sdk_path(current_sdk)).deployment_target)) != NULL) {
 		if (macosx_deployment_target_set == 1) {
-			sprintf(envp[2], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+			sprintf(envp[3], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
 			goto invoke_command;
 		}
 		if (ios_deployment_target_set == 1) {
-			sprintf(envp[2], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
+			sprintf(envp[3], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
 			goto invoke_command;
 		}
 	} else {
