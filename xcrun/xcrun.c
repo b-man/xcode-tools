@@ -479,7 +479,7 @@ static char *get_sdk_path(const char *name)
 }
 
 /**
- * @func parse_target_triple
+ * @func parse_target_triple -- Generate target triple by parsing iOS/MacOSX version and cpu architecture
  * @arg triple - buffer to place the target triple
  * @arg ver - Mac OSX or iOS version 
  * @arg arch - Mac OSX or iOS cpu architecture
