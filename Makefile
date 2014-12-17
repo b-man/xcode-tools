@@ -19,6 +19,9 @@ install:
 	make -C xcode-select/ PREFIX=$(PREFIX) DSTROOT=$(DSTROOT) install
 	install -m 755 scripts/xcrun-tool.sh $(DSTROOT)/$(PREFIX)/bin/xcrun-tool
 	install -m 755 scripts/clang.sh $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang
+	install -m 755 scripts/cpp.sh $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/cpp
+	install -m 755 scripts/cc.sh $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/cc
+	install -m 755 scripts/c++.sh $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/c++
 	-ln -s $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang++
 
 ifndef DSTROOT
