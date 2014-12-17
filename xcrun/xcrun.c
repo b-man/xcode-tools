@@ -586,16 +586,17 @@ static int call_command(const char *cmd, int argc, char *argv[])
 {
 	int i;
 	char triple[64];
-	char *envp[6] = { NULL };
+	char *envp[7] = { NULL };
 	char *target_triple = NULL;
 	char *default_arch = NULL;
 	char *deployment_target = NULL;
 
 	/*
-	 * Pass SDKROOT, PATH, LD_LIBRARY_PATH, TARGET_TRIPLE, and MACOSX_DEPLOYMENT_TARGET to the called program's environment.
+	 * Pass SDKROOT, PATH, HOME, LD_LIBRARY_PATH, TARGET_TRIPLE, and MACOSX_DEPLOYMENT_TARGET to the called program's environment.
 	 *
 	 * > SDKROOT is used for when programs such as clang need to know the location of the sdk.
 	 * > PATH is used for when programs such as clang need to call on another program (such as the linker).
+	 * > HOME is used for recursive calls to xcrun (such as when xcrun calls a script calling xcrun ect).
 	 * > LD_LIBRARY_PATH is used for when tools needs to access libraries that are specific to the toolchain.
 	 * > TARGET_TRIPLE is used for clang/clang++ cross compilation when building on a foreign host.
 	 * > {MACOSX|IOS}_DEPLOYMENT_TARGET is used for tools like ld that need to set the minimum compatibility
@@ -604,29 +605,31 @@ static int call_command(const char *cmd, int argc, char *argv[])
 	envp[0] = (char *)malloc(PATH_MAX - 1);
 	envp[1] = (char *)malloc(PATH_MAX - 1);
 	envp[2] = (char *)malloc(PATH_MAX - 1);
-	envp[3] = (char *)malloc(255);
-	envp[4] = (char *)malloc(64);
+	envp[3] = (char *)malloc(PATH_MAX - 1);
+	envp[4] = (char *)malloc(255);
+	envp[5] = (char *)malloc(64);
 
 	sprintf(envp[0], "SDKROOT=%s", get_sdk_path(current_sdk));
 	sprintf(envp[1], "PATH=%s/usr/bin:%s/usr/bin", developer_dir, get_toolchain_path(current_toolchain));
 	sprintf(envp[2], "LD_LIBRARY_PATH=%s/usr/lib", get_toolchain_path(current_toolchain));
+	sprintf(envp[3], "HOME=%s", getenv("HOME"));
 
 	if ((deployment_target = getenv("IOS_DEPLOYMENT_TARGET")) != NULL) {
-		sprintf(envp[3], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
+		sprintf(envp[4], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
 		goto process_triple;
 	} else if ((deployment_target = getenv("MACOSX_DEPLOYMENT_TARGET")) != NULL) {
-		sprintf(envp[3], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+		sprintf(envp[4], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
 		goto process_triple;
 	}
 
 	/* Use the deployment target info that is provided by the SDK. */
 	if ((deployment_target = strdup(get_sdk_info(get_sdk_path(current_sdk)).deployment_target)) != NULL) {
 		if (macosx_deployment_target_set == 1) {
-			sprintf(envp[3], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+			sprintf(envp[4], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
 			goto process_triple;
 		}
 		if (ios_deployment_target_set == 1) {
-			sprintf(envp[3], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
+			sprintf(envp[4], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
 			goto process_triple;
 		}
 	} else {
@@ -636,7 +639,7 @@ static int call_command(const char *cmd, int argc, char *argv[])
 
 process_triple:
 	if ((target_triple = getenv("TARGET_TRIPLE")) != NULL) {
-		sprintf(envp[4], "TARGET_TRIPLE=%s", target_triple);
+		sprintf(envp[5], "TARGET_TRIPLE=%s", target_triple);
 		goto invoke_command;
 	}
 
@@ -644,7 +647,7 @@ process_triple:
 	if ((default_arch = strdup(get_sdk_info(get_sdk_path(current_sdk)).default_arch)) != NULL) {
 		parse_target_triple(triple, deployment_target, default_arch);
 		target_triple = triple;
-		sprintf(envp[4], "TARGET_TRIPLE=%s", target_triple);
+		sprintf(envp[5], "TARGET_TRIPLE=%s", target_triple);
 		goto invoke_command;
 	} else {
 		fprintf(stderr, "xcrun: warning: failed to retrieve default arch information for %s.sdk.\n", current_sdk);

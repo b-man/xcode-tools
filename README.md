@@ -113,6 +113,8 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 	
 	PATH				- This contains all resolved paths for the Developer folder, the SDK, and the Toolchain.
 
+	HOME				- This contains the path to the current user's home directory (used internally for recursive calls to xcrun).
+
 	TARGET_TRIPLE			- This is set to an llvm target triple that is associated with the currently selected SDK.
 	
 	IOS_DEPLOYMENT_TARGET		- If MACOSX_DEPLOYMENT_TARGET isn't specified and this is, this will be passed to the called tool.
