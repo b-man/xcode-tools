@@ -610,7 +610,7 @@ static int call_command(const char *cmd, int argc, char *argv[])
 	envp[5] = (char *)malloc(64);
 
 	sprintf(envp[0], "SDKROOT=%s", get_sdk_path(current_sdk));
-	sprintf(envp[1], "PATH=%s/usr/bin:%s/usr/bin", developer_dir, get_toolchain_path(current_toolchain));
+	sprintf(envp[1], "PATH=%s/usr/bin:%s/usr/bin:%s", developer_dir, get_toolchain_path(current_toolchain), getenv("PATH"));
 	sprintf(envp[2], "LD_LIBRARY_PATH=%s/usr/lib", get_toolchain_path(current_toolchain));
 	sprintf(envp[3], "HOME=%s", getenv("HOME"));
 

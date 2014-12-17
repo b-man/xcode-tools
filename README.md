@@ -111,7 +111,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 	```
 	SDKROOT				- This points to the specified SDK folder (e.g. <DevFolder>/SDKs/<specified sdk>.sdk).
 	
-	PATH				- This contains all resolved paths for the Developer folder, the SDK, and the Toolchain.
+	PATH				- This contains all resolved paths for the Developer folder, the SDK, the Toolchain, and the hosts' $PATH in order.
 
 	HOME				- This contains the path to the current user's home directory (used internally for recursive calls to xcrun).
 
