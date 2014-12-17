@@ -73,6 +73,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 	[SDK]				; this is an sdk configuration file
 	name = DarwinARM		; this is the name of our SDK. This MUST match the folder name that is postfixed with '.sdk'.
 	version = 1.0.0			; this is the version number for the SDK.
+	default_arch = arm		; this is the default architecture to be used for the SDK
 	toolchain = DarwinARM		; this is the specified toolchain name to be used with the SDK.
 	macosx_deployment_target = 10.7	; this is the deployment target to be used with the SDK.
 					; you can rename this variable to ios_deployment_target and set it to an appropriate iOS version
@@ -111,6 +112,8 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
 	SDKROOT				- This points to the specified SDK folder (e.g. <DevFolder>/SDKs/<specified sdk>.sdk).
 	
 	PATH				- This contains all resolved paths for the Developer folder, the SDK, and the Toolchain.
+
+	TARGET_TRIPLE			- This is set to an llvm target triple that is associated with the currently selected SDK.
 	
 	IOS_DEPLOYMENT_TARGET		- If MACOSX_DEPLOYMENT_TARGET isn't specified and this is, this will be passed to the called tool.
 	

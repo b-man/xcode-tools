@@ -1,6 +1,6 @@
 /* xcrun - clone of apple's xcode xcrun utility
  *
- * Copyright (c) 2013, Brian McKenzie <mckenzba@gmail.com>
+ * Copyright (c) 2013-2014, Brian McKenzie <mckenzba@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -59,6 +59,7 @@ typedef struct {
 	const char *name;
 	const char *version;
 	const char *toolchain;
+	const char *default_arch;
 	const char *deployment_target;
 } sdk_config;
 
@@ -270,6 +271,8 @@ static int sdk_cfg_handler(void *user, const char *section, const char *name, co
 		config->version = strdup(value);
 	else if (MATCH_INI_STON("SDK", "toolchain"))
 		config->toolchain = strdup(value);
+	else if (MATCH_INI_STON("SDK", "default_arch"))
+		config->default_arch = strdup(value);
 	else if (MATCH_INI_STON("SDK", "ios_deployment_target")) {
 		ios_deployment_target_set = 1;
 		macosx_deployment_target_set = 0;
@@ -476,6 +479,103 @@ static char *get_sdk_path(const char *name)
 }
 
 /**
+ * @func parse_target_triple
+ * @arg triple - buffer to place the target triple
+ * @arg ver - Mac OSX or iOS version 
+ * @arg arch - Mac OSX or iOS cpu architecture
+ */
+static void parse_target_triple(char *triple, const char *ver, const char *arch)
+{
+	int where = 1;
+	int xx, yy, zz, ch, kern_ver;
+
+	if (ver == NULL)
+		return;
+
+	xx = yy = zz = 0;
+
+	do {
+		ch = (int)*ver;
+
+		switch (ch) {
+			case '9':
+			case '8':
+			case '7':
+			case '6':
+			case '5':
+			case '4':
+			case '3':
+			case '2':
+			case '1':
+			case '0':
+				{
+					switch (where) {
+						case 1: /* major */
+							xx *= 10;
+							xx += (ch - '0');
+							break;
+						case 2: /* minor */
+							yy *= 10;
+							yy += (ch - '0');
+							break;
+						case 3: /* patch */
+							zz *= 10;
+							zz += (ch - '0');
+						default:
+							break;
+					}
+					break;
+				}
+			case '.':
+			default:
+				where++;
+				break;
+		}
+	} while (*ver++ != '\0');
+
+	switch (xx) {
+		case 10:
+			kern_ver = (yy + 4);
+			break;
+		case 9:
+		case 8:
+			kern_ver = 14;
+			break;
+		case 7:
+			kern_ver = 14;
+			break;
+		case 6:
+			kern_ver = 13;
+			break;
+		case 5:
+			kern_ver = 11;
+			break;
+		case 4:
+			{
+				if (yy <= 2)
+					kern_ver = 10;
+				else
+					kern_ver = 11;
+				break;
+			}
+		case 3:
+			kern_ver = 10;
+			break;
+		case 2:
+			kern_ver = 9;
+			break;
+		case 1:
+		default:
+			kern_ver = 9;
+			break;
+	}
+
+	sprintf(triple, "%s-apple-darwin%d", arch, kern_ver);
+
+	return;
+}
+
+/**
  * @func call_command -- Execute new process to replace this one.
  * @arg cmd - program's absolute path
  * @arg argc - number of arguments to be passed to new process
@@ -485,15 +585,19 @@ static char *get_sdk_path(const char *name)
 static int call_command(const char *cmd, int argc, char *argv[])
 {
 	int i;
-	char *envp[5] = { NULL };
+	char triple[64];
+	char *envp[6] = { NULL };
+	char *target_triple = NULL;
+	char *default_arch = NULL;
 	char *deployment_target = NULL;
 
 	/*
-	 * Pass SDKROOT, PATH, LD_LIBRARY_PATH, and MACOSX_DEPLOYMENT_TARGET to the called program's environment.
+	 * Pass SDKROOT, PATH, LD_LIBRARY_PATH, TARGET_TRIPLE, and MACOSX_DEPLOYMENT_TARGET to the called program's environment.
 	 *
 	 * > SDKROOT is used for when programs such as clang need to know the location of the sdk.
 	 * > PATH is used for when programs such as clang need to call on another program (such as the linker).
 	 * > LD_LIBRARY_PATH is used for when tools needs to access libraries that are specific to the toolchain.
+	 * > TARGET_TRIPLE is used for clang/clang++ cross compilation when building on a foreign host.
 	 * > {MACOSX|IOS}_DEPLOYMENT_TARGET is used for tools like ld that need to set the minimum compatibility
 	 *   version number for a linked binary.
 	 */
@@ -501,6 +605,7 @@ static int call_command(const char *cmd, int argc, char *argv[])
 	envp[1] = (char *)malloc(PATH_MAX - 1);
 	envp[2] = (char *)malloc(PATH_MAX - 1);
 	envp[3] = (char *)malloc(255);
+	envp[4] = (char *)malloc(64);
 
 	sprintf(envp[0], "SDKROOT=%s", get_sdk_path(current_sdk));
 	sprintf(envp[1], "PATH=%s/usr/bin:%s/usr/bin", developer_dir, get_toolchain_path(current_toolchain));
@@ -508,25 +613,42 @@ static int call_command(const char *cmd, int argc, char *argv[])
 
 	if ((deployment_target = getenv("IOS_DEPLOYMENT_TARGET")) != NULL) {
 		sprintf(envp[3], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
-		goto invoke_command;
+		goto process_triple;
 	} else if ((deployment_target = getenv("MACOSX_DEPLOYMENT_TARGET")) != NULL) {
 		sprintf(envp[3], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
-		goto invoke_command;
+		goto process_triple;
 	}
 
 	/* Use the deployment target info that is provided by the SDK. */
 	if ((deployment_target = strdup(get_sdk_info(get_sdk_path(current_sdk)).deployment_target)) != NULL) {
 		if (macosx_deployment_target_set == 1) {
 			sprintf(envp[3], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
-			goto invoke_command;
+			goto process_triple;
 		}
 		if (ios_deployment_target_set == 1) {
 			sprintf(envp[3], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
-			goto invoke_command;
+			goto process_triple;
 		}
 	} else {
 		fprintf(stderr, "xcrun: error: failed to retrieve deployment target information for %s.sdk.\n", current_sdk);
 		exit(1);
+	}
+
+process_triple:
+	if ((target_triple = getenv("TARGET_TRIPLE")) != NULL) {
+		sprintf(envp[4], "TARGET_TRIPLE=%s", target_triple);
+		goto invoke_command;
+	}
+
+	/* Use the default architecture into that is provided by the SDK. */
+	if ((default_arch = strdup(get_sdk_info(get_sdk_path(current_sdk)).default_arch)) != NULL) {
+		parse_target_triple(triple, deployment_target, default_arch);
+		target_triple = triple;
+		sprintf(envp[4], "TARGET_TRIPLE=%s", target_triple);
+		goto invoke_command;
+	} else {
+		fprintf(stderr, "xcrun: warning: failed to retrieve default arch information for %s.sdk.\n", current_sdk);
+		goto invoke_command;
 	}
 
 invoke_command:
