@@ -8,6 +8,6 @@ fi
 TARGET_TRIPLE=`xcrun llvm-config --host-target`
 TOOL=`/usr/bin/xcrun -find ${0/${TARGET_TRIPLE}-/}`
 
-${TOOL} ${@}
+${TOOL} "${@}"
 
 exit ${?}

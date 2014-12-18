@@ -2,6 +2,6 @@
 
 TOOL=`/usr/bin/xcrun -find clang++`
 
-${TOOL} ${@}
+${TOOL} "${@}"
 
 exit ${?}
