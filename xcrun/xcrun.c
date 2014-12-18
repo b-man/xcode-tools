@@ -633,48 +633,36 @@ static int call_command(const char *cmd, int argc, char *argv[])
 	envp[1] = (char *)malloc(PATH_MAX - 1);
 	envp[2] = (char *)malloc(PATH_MAX - 1);
 	envp[3] = (char *)malloc(PATH_MAX - 1);
-	envp[4] = (char *)malloc(255);
-	envp[5] = (char *)malloc(64);
+	envp[4] = (char *)malloc(64);
+	envp[5] = (char *)malloc(255);
 
 	sprintf(envp[0], "SDKROOT=%s", get_sdk_path(current_sdk));
 	sprintf(envp[1], "PATH=%s/usr/bin:%s/usr/bin:%s", developer_dir, get_toolchain_path(current_toolchain), getenv("PATH"));
 	sprintf(envp[2], "LD_LIBRARY_PATH=%s/usr/lib", get_toolchain_path(current_toolchain));
 	sprintf(envp[3], "HOME=%s", getenv("HOME"));
 
-	if ((deployment_target = getenv("IOS_DEPLOYMENT_TARGET")) != NULL) {
-		sprintf(envp[4], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
-		goto process_triple;
-	} else if ((deployment_target = getenv("MACOSX_DEPLOYMENT_TARGET")) != NULL) {
-		sprintf(envp[4], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
-		goto process_triple;
-	}
-
-	/* Use the deployment target info that is provided by the SDK. */
-	if ((deployment_target = strdup(get_sdk_info(get_sdk_path(current_sdk)).deployment_target)) != NULL) {
-		if (macosx_deployment_target_set == 1) {
-			sprintf(envp[4], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
-			goto process_triple;
-		}
-		if (ios_deployment_target_set == 1) {
-			sprintf(envp[4], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
-			goto process_triple;
-		}
-	} else {
-		fprintf(stderr, "xcrun: error: failed to retrieve deployment target information for %s.sdk.\n", current_sdk);
-		exit(1);
-	}
-
-process_triple:
-	/* Use the default architecture into that is provided by the SDK. */
-	if ((target_triple = get_target_triple(current_sdk)) != NULL) {
-		sprintf(envp[5], "TARGET_TRIPLE=%s", target_triple);
-		goto invoke_command;
-	} else {
+	if ((target_triple = get_target_triple(current_sdk)) != NULL)
+		sprintf(envp[4], "TARGET_TRIPLE=%s", target_triple);
+	else
 		fprintf(stderr, "xcrun: warning: failed to retrieve target triple information for %s.sdk.\n", current_sdk);
-		goto invoke_command;
+
+	if ((deployment_target = getenv("IOS_DEPLOYMENT_TARGET")) != NULL)
+		sprintf(envp[5], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
+	else if ((deployment_target = getenv("MACOSX_DEPLOYMENT_TARGET")) != NULL)
+		sprintf(envp[5], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+	else {
+		/* Use the deployment target info that is provided by the SDK. */
+		if ((deployment_target = strdup(get_sdk_info(get_sdk_path(current_sdk)).deployment_target)) != NULL) {
+			if (macosx_deployment_target_set == 1)
+				sprintf(envp[5], "MACOSX_DEPLOYMENT_TARGET=%s", deployment_target);
+			else if (ios_deployment_target_set == 1)
+				sprintf(envp[5], "IOS_DEPLOYMENT_TARGET=%s", deployment_target);
+		} else {
+			fprintf(stderr, "xcrun: error: failed to retrieve deployment target information for %s.sdk.\n", current_sdk);
+			exit(1);
+		}
 	}
 
-invoke_command:
 	if (logging_mode == 1) {
 		logging_printf(stdout, "xcrun: info: invoking command:\n\t\"%s", cmd);
 		for (i = 1; i < argc; i++)
