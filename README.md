@@ -141,6 +141,7 @@ xcrun is a simple utility used to locate and/or execute Developer, Toolchain, an
   -r, --run                    find and execute the tool (the default behavior)
   --show-sdk-path              show selected SDK install path
   --show-sdk-version           show selected SDK version
+  --show-sdk-target-triple     show selected SDK target triple
   --show-sdk-toolchain-path    show selected SDK toolchain path
   --show-sdk-toolchain-version show selected SDK toolchain version
   ```
