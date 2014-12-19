@@ -15,11 +15,11 @@ endef
 all:
 	$(call do_make, $(DIRS), all)
 
-install:
+install: all
 	$(call do_make, $(DIRS), install)
-	ifeq ($(DESTDIR),)
-		xcode-select --switch $(DEVELOPER_DIR)
-	endif
+ifndef DESTDIR
+	xcode-select --switch $(DEVELOPER_DIR)
+endif
 
 clean:
 	$(call do_make, $(DIRS), clean)

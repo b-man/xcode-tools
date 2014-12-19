@@ -13,7 +13,7 @@ install: all
 	install -m 755 cpp.sh $(DESTDIR)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/cpp
 	install -m 755 c++.sh $(DESTDIR)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/c++
 	install -m 755 clang.sh $(DESTDIR)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang
-	ln -s $(DESTDIR)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang $(DESTDIR)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang++
+	-ln -s $(DESTDIR)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang $(DESTDIR)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang++
 
 clean:
 	@echo "Nothing to do for clean"
