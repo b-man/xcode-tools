@@ -1,24 +1,31 @@
-PREFIX ?= /usr
-
-CC = clang
-CFLAGS = -Wall -Werror -O2
-
-OBJS := \
-	ini.o \
-	xcrun.o
-
 PROG := xcrun
 
-%c.o:
-	$(CC) $(CFLAGS) -c $< -o @@
+CFLAGS :=
+LFLAGS :=
+
+CC := $(shell which clang)
+
+CFLAGS += \
+	-Wall \
+	-Werror \
+	-O2
+
+C_SRCS := \
+	ini.c \
+	xcrun.c
+
+OBJS := \
+	$(patsubst %.c,%.o, $(filter %.c,$(C_SRCS)))
+
+%.c.o:
+	$(CC) -x c $(CFLAGS) -c $< -o $@
 
 all: $(OBJS)
-	$(CC) $(OBJS) -o $(PROG)
+	$(CC) $(OBJS) -o $(PROG) $(LFLAGS)
 
-install: $(PROG)
-	install -d $(DSTROOT)/$(PREFIX)/bin
-	install -s -m 755 $(PROG) $(DSTROOT)/$(PREFIX)/bin/$(PROG)
+install: all
+	install -d $(DESTDIR)/usr/bin
+	install -s -m 755 $(PROG) $(DESTDIR)/usr/bin/$(PROG)
 
-.PHONY: clean
 clean:
-	rm -rf $(OBJS) $(PROG)
+	rm -f $(OBJS) $(PROG)

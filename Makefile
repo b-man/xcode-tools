@@ -1,35 +1,25 @@
-PREFIX ?= /usr
 DEVELOPER_DIR ?= /opt/Developer
 
-TARGET ?= DarwinARM
+DIRS := \
+	configs \
+	scripts \
+	xcrun \
+	xcode-select
 
-.PHONY: all install clean
+define do_make
+	@for dir in $1; do \
+		make -C $$dir DESTDIR=$(DESTDIR) DEVELOPER_DIR=$(DEVELOPER_DIR) $2; \
+	done
+endef
 
 all:
-	make -C xcrun/
-	make -C xcode-select/
+	$(call do_make, $(DIRS), all)
 
 install:
-	install -d $(DSTROOT)/$(DEVELOPER_DIR)/SDKs/$(TARGET).sdk
-	install -d $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin
-	install -m 644 configs/xcrun.ini $(DSTROOT)/etc/xcrun.ini
-	install -m 644 configs/$(TARGET)SDKSettings.info.ini $(DSTROOT)/$(DEVELOPER_DIR)/SDKs/$(TARGET).sdk/info.ini
-	install -m 644 configs/$(TARGET)ToolchainSettings.info.ini $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/info.ini
-	make -C xcrun/ PREFIX=$(PREFIX) DSTROOT=$(DSTROOT) install
-	make -C xcode-select/ PREFIX=$(PREFIX) DSTROOT=$(DSTROOT) install
-	install -m 755 scripts/xcrun-tool.sh $(DSTROOT)/$(PREFIX)/bin/xcrun-tool
-	install -m 755 scripts/clang.sh $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang
-	install -m 755 scripts/cpp.sh $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/cpp
-	install -m 755 scripts/cc.sh $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/cc
-	install -m 755 scripts/c++.sh $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/c++
-	-ln -s $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang $(DSTROOT)/$(DEVELOPER_DIR)/Toolchains/$(TARGET).toolchain/usr/bin/clang++
-
-ifndef DSTROOT
-	xcode-select --switch $(DEVELOPER_DIR)
-else
-	@echo "Remember to run xcode-select --switch /path/to/DeveloperDir after installation!"
-endif
+	$(call do_make, $(DIRS), install)
+	ifeq ($(DESTDIR),)
+		xcode-select --switch $(DEVELOPER_DIR)
+	endif
 
 clean:
-	make -C xcrun/ clean
-	make -C xcode-select/ clean
+	$(call do_make, $(DIRS), clean)
