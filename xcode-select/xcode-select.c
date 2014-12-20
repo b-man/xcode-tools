@@ -121,7 +121,7 @@ static char *get_developer_path(void)
 
 	if ((fp = fopen(cfg_path, "r")) != NULL) {
 		fseek(fp, SEEK_SET, 0);
-		fread(devpath, (PATH_MAX - 1), 1, fp);
+		(void)fread(devpath, (PATH_MAX - 1), 1, fp);
 		value = devpath;
 		fclose(fp);
 	} else {
