@@ -1,6 +1,6 @@
 /* xcode-select - clone of apple's xcode-select utility
  *
- * Copyright (c) 2013, Brian McKenzie <mckenzba@gmail.com>
+ * Copyright (c) 2013-2014, Brian McKenzie <mckenzba@gmail.com>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -121,7 +121,7 @@ static char *get_developer_path(void)
 
 	if ((fp = fopen(cfg_path, "r")) != NULL) {
 		fseek(fp, SEEK_SET, 0);
-		fread(devpath, (PATH_MAX - 1), 1, fp);
+		(void)fread(devpath, (PATH_MAX - 1), 1, fp);
 		value = devpath;
 		fclose(fp);
 	} else {
